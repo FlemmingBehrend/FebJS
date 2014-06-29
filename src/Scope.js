@@ -15,10 +15,11 @@ Scope.prototype.$watch = function (watchFn, listenerFn) {
     this.$$watchers.push(watcher);
 };
 
-Scope.prototype.$digest = function () {
+Scope.prototype.$$digestOnce = function () {
     var self = this;
     var newValue;
     var oldValue;
+    var dirty = false;
     _.forEach(this.$$watchers, function (watcher) {
         newValue = watcher.watchFn(self);
         oldValue = watcher.last;
@@ -28,10 +29,17 @@ Scope.prototype.$digest = function () {
                 oldValue = newValue;
             }
             watcher.listenerFn(newValue, oldValue, self);
+            dirty = true;
         }
     })
+    return dirty;
 };
 
-function initWatchVal() {
+Scope.prototype.$digest = function () {
+    var dirty;
+    do {
+        dirty = this.$$digestOnce();
+    } while (dirty);
+};
 
-}
+function initWatchVal() {}

@@ -94,5 +94,30 @@ describe("Scope", function () {
             expect(watchFn).toHaveBeenCalled();
         });
 
+        it ("Should trigger chained watchers in the same digest", function () {
+            scope.name = "Flemming";
+            scope.$watch(
+                function (scope) {
+                    return scope.nameUpper;
+                },
+                function (newValue, oldValue, scope) {
+                    if (newValue) {
+                        scope.initial = newValue.substring(0,1) + ".";
+                    }
+                }
+            );
+            scope.$watch(
+                function (scope) {
+                    return scope.name;
+                },
+                function (newValue, oldValue, scope) {
+                    if (newValue) {
+                        scope.nameUpper = newValue.toUpperCase();
+                    }
+                }
+            )
+            scope.$digest();
+            expect(scope.initial).toBe("F.");
+        });
     });
 });
