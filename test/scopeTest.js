@@ -58,5 +58,41 @@ describe("Scope", function () {
             expect(scope.counter).toBe(2);
         });
 
+        it ("Should call the listener when value is first undefined", function() {
+            scope.counter = 0;
+            scope.$watch(
+                function (scope) {
+                    return scope.someValue;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+        });
+
+        it ("Should call listener with new value as old value the first time", function () {
+            scope.someValue = 123;
+            var oldValueGiven;
+            scope.$watch(
+                function (scope) {
+                    return scope.someValue;
+                },
+                function (newValue, oldValue, scope) {
+                    oldValueGiven = oldValue;
+                }
+            )
+            scope.$digest();
+            expect(oldValueGiven).toBe(123);
+        });
+
+        it ("Should be possible to have watchers without a listener", function () {
+            var watchFn = jasmine.createSpy();
+            scope.$watch(watchFn);
+            scope.$digest();
+            expect(watchFn).toHaveBeenCalled();
+        });
+
     });
 });

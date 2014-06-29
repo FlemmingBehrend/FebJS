@@ -9,7 +9,8 @@ function Scope() {
 Scope.prototype.$watch = function (watchFn, listenerFn) {
     var watcher = {
         watchFn: watchFn,
-        listenerFn: listenerFn
+        listenerFn: listenerFn || function () {},
+        last: initWatchVal
     };
     this.$$watchers.push(watcher);
 };
@@ -23,7 +24,14 @@ Scope.prototype.$digest = function () {
         oldValue = watcher.last;
         if (newValue !== oldValue) {
             watcher.last = newValue;
+            if (oldValue === initWatchVal) {
+                oldValue = newValue;
+            }
             watcher.listenerFn(newValue, oldValue, self);
         }
     })
 };
+
+function initWatchVal() {
+
+}
