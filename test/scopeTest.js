@@ -273,5 +273,61 @@ describe("Scope", function () {
             expect(scope.asyncExecuted).toBe(true);
             expect(scope.asyncExecutedImmediately).toBe(false);
         });
+
+        it("Should execute $evalAsync'ed functions added by watch functions", function() {
+            scope.aValue = [1,2,3];
+            scope.asyncExecuted = false;
+            scope.$watch(
+                function (scope) {
+                    if (!scope.asyncExecuted) {
+                        scope.$evalAsync(function (scope) {
+                            scope.asyncExecuted = true;
+                        });
+                    }
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                }
+            );
+            scope.$digest();
+            expect(scope.asyncExecuted).toBe(true);
+        });
+
+        it("Should execute $evalAsync'ed functions even when $digest is not dirty", function() {
+            scope.aValue = [1,2,3];
+            scope.asyncExecutedNumberOfTimes = 0;
+            scope.$watch(function () {
+                console.log("digest called");
+            });
+            scope.$watch(
+                function (scope) {
+                    if (scope.asyncExecutedNumberOfTimes < 2) {
+                        scope.$evalAsync(function (scope) {
+                            scope.asyncExecutedNumberOfTimes++;
+                        });
+                    }
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                }
+            );
+            scope.$digest();
+            expect(scope.asyncExecutedNumberOfTimes).toBe(2);
+        });
+
+        it("Should eventually halt $evalAsyncs added by $watch", function() {
+            scope.aValue = [1,2,3];
+            scope.$watch(
+                function (scope) {
+                    scope.$evalAsync(function (scope) {
+                    });
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                }
+            );
+            expect(function () { scope.$digest(); }).toThrow();
+        });
+
     });
 });
