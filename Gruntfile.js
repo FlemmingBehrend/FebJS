@@ -1,7 +1,10 @@
 module.exports = function(grunt) {
-	
 	grunt.initConfig({
-
+		karma: {
+			unit: {
+				configFile: 'karma.conf.js'
+			}
+		},
 		jshint: {
 			all: ['*.js'],
 			options: {
@@ -12,24 +15,10 @@ module.exports = function(grunt) {
 				browser: true,
 				devel: true
 			}
-		},
-        karma: {
-            options: {
-                configFile: 'karma.conf.js'
-            },
-            unit: {
-                singleRun: true
-            },
-
-            continuous: {
-                singleRun: false,
-                autoWatch: true
-            }
-        }
-
-
+		}
 	});
 
 	grunt.loadNpmTasks('grunt-contrib-jshint');
+	grunt.loadNpmTasks('grunt-karma');
 
 };
