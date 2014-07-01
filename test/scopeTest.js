@@ -274,7 +274,7 @@ describe("Scope", function () {
             expect(scope.asyncExecutedImmediately).toBe(false);
         });
 
-        it("Should execute $evalAsync'ed functions added by watch functions", function() {
+        it ("Should execute $evalAsync'ed functions added by watch functions", function() {
             scope.aValue = [1,2,3];
             scope.asyncExecuted = false;
             scope.$watch(
@@ -293,12 +293,9 @@ describe("Scope", function () {
             expect(scope.asyncExecuted).toBe(true);
         });
 
-        it("Should execute $evalAsync'ed functions even when $digest is not dirty", function() {
+        it ("Should execute $evalAsync'ed functions even when $digest is not dirty", function() {
             scope.aValue = [1,2,3];
             scope.asyncExecutedNumberOfTimes = 0;
-            scope.$watch(function () {
-                console.log("digest called");
-            });
             scope.$watch(
                 function (scope) {
                     if (scope.asyncExecutedNumberOfTimes < 2) {
@@ -315,7 +312,7 @@ describe("Scope", function () {
             expect(scope.asyncExecutedNumberOfTimes).toBe(2);
         });
 
-        it("Should eventually halt $evalAsyncs added by $watch", function() {
+        it ("Should eventually halt $evalAsyncs added by $watch", function() {
             scope.aValue = [1,2,3];
             scope.$watch(
                 function (scope) {
@@ -328,6 +325,57 @@ describe("Scope", function () {
             );
             expect(function () { scope.$digest(); }).toThrow();
         });
+
+        it ("Should have a $$phase variable that contain the name of the current digest phase", function () {
+            scope.aValue = [1,2,3];
+            scope.phaseInWatchFunction = null;
+            scope.phaseInListenerFunction = null;
+            scope.phaseInApplyFunction = null;
+            scope.$watch(
+                function (scope) {
+                    scope.phaseInWatchFunction = scope.$$phase;
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.phaseInListenerFunction = scope.$$phase;
+                }
+            );
+            scope.$apply(
+                function (scope) {
+                    scope.phaseInApplyFunction = scope.$$phase;
+                }
+            );
+            expect(scope.phaseInWatchFunction).toBe('$digest');
+            expect(scope.phaseInListenerFunction).toBe('$digest');
+            expect(scope.phaseInApplyFunction).toBe('$apply');
+        });
+
+        it ("Should schedule a $digest in $evalAsync", function (done) {
+            scope.aValue = "abc";
+            scope.counter = 0;
+            scope.$watch(
+                function (scope) {
+                    console.log("watch");
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                    console.log("listener");
+                    scope.counter++;
+                }
+            );
+            scope.$evalAsync(
+                function (scope) {
+                }
+            );
+            console.log("inden expect: " + done);
+            expect(scope.counter).toBe(0);
+            setTimeout(function() {
+                console.log("test");
+                expect(scope.counter).toBe(3);
+                done();
+            }, 50);
+        });
+
 
     });
 });
