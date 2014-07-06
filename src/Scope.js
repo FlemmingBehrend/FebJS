@@ -10,6 +10,14 @@ function Scope() {
 
 function initWatchVal() {}
 
+Scope.prototype.$new = function () {
+    var ChildScope = function () {
+    };
+    ChildScope.prototype = this;
+    var child = new ChildScope();
+    return child;
+};
+
 Scope.prototype.$watch = function (watchFn, listenerFn, valueEq) {
     var self = this;
     var watcher = {

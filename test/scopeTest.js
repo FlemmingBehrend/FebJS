@@ -594,4 +594,78 @@ describe("Scope", function () {
             expect(scope.counter).toBe(0);
         });
     });
+
+    describe("inheritance", function() {
+
+        it ("Should inherit the parents properties", function () {
+            var parent = new Scope();
+            parent.aValue = [1,2,3];
+            var child = parent.$new();
+            expect(child.aValue).toEqual([1,2,3]);
+        });
+
+        it ("Should not cause a parent to inherit it's child's properties", function () {
+            var parent = new Scope();
+            var child = parent.$new();
+            child.aValue = [1, 2, 3];
+            expect(parent.aValue).toBeUndefined();
+        });
+
+        it ("Should inherit the parent's properties even when defined after the link have been created", function () {
+            var parent = new Scope();
+            var child = parent.$new();
+            parent.aValue = [1, 2, 3];
+            expect(child.aValue).toEqual([1, 2, 3]);
+        });
+
+        it ("Should be possible to manipulate the parent's scope properties from a child scope", function () {
+            var parent = new Scope();
+            var child = parent.$new();
+            parent.aValue = [1, 2, 3];
+            child.aValue.push(4);
+            expect(child.aValue).toEqual([1, 2, 3, 4]);
+            expect(parent.aValue).toEqual([1, 2, 3, 4]);
+        });
+
+        it ("Should be possible to $watch a parent scope property from a child scope", function () {
+            var parent = new Scope();
+            var child = parent.$new();
+            parent.aValue = [1,2,3];
+            child.counter = 0;
+            child.$watch(
+                function (scope) {
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                },
+                true
+            );
+            child.$digest();
+            expect(child.counter).toBe(1);
+            parent.aValue.push(4);
+            child.$digest();
+            expect(child.counter).toBe(2);
+        });
+
+        it ("Should be possible to create nested scopes in any depth", function () {
+            var a = new Scope();
+            var aa = a.$new();
+            var aaa = aa.$new();
+            var aab = aa.$new();
+            var ab = a.$new();
+            var abb = ab.$new();
+            a.value = 1;
+            expect(aa.value).toBe(1);
+            expect(aaa.value).toBe(1);
+            expect(aab.value).toBe(1);
+            expect(ab.value).toBe(1);
+            expect(abb.value).toBe(1);
+            ab.anotherValue = 2;
+            expect(abb.anotherValue).toBe(2);
+            expect(aa.anotherValue).toBeUndefined();
+            expect(aaa.anotherValue).toBeUndefined();
+        });
+
+    });
 });
