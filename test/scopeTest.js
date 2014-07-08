@@ -667,5 +667,237 @@ describe("Scope", function () {
             expect(aaa.anotherValue).toBeUndefined();
         });
 
+        it ("Should be possible for a child scope to shadow properties from it's parent scope", function () {
+            var parent = new Scope();
+            var child = parent.$new();
+            parent.name = "Flemming";
+            child.name = "Frederik";
+            expect(child.name).toBe("Frederik");
+            expect(parent.name).toBe("Flemming");
+        });
+
+        it ("Should not be possible for a child scope to shadow attributes from it's parent scope", function () {
+            var parent = new Scope();
+            var child = parent.$new();
+            parent.user = {name: "Flemming"};
+            child.user.name = "Frederik";
+            expect(child.user.name).toBe("Frederik");
+            expect(parent.user.name).toBe("Frederik");
+        });
+
+        it ("Should not call $watch on parent scopes under $digest", function () {
+            var parent = new Scope();
+            var child = parent.$new();
+            parent.aValue = "abc";
+            parent.$watch(
+                function (scope) {
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.aValueWas = newValue;
+                }
+            );
+            child.$digest();
+            expect(child.aValueWas).toBeUndefined();
+        });
+
+        it ("Should be possible for a scope to keep track of it's children scopes", function () {
+            var parent = new Scope();
+            var child1 = parent.$new();
+            var child2 = parent.$new();
+            var child2_1 = child2.$new();
+            expect(parent.$$children.length).toBe(2);
+            expect(parent.$$children[0]).toBe(child1);
+            expect(parent.$$children[1]).toBe(child2);
+            expect(child1.$$children.length).toBe(0);
+            expect(child2.$$children.length).toBe(1);
+            expect(child2.$$children[0]).toBe(child2_1);
+        });
+
+        it ("Should $digest it's own scope and it's children", function () {
+            var parent = new Scope();
+            var child = parent.$new();
+            parent.aValue = "abc";
+            child.$watch(
+                function (scope) {
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                    child.aValueWas = newValue;
+                }
+            );
+            parent.$digest();
+            expect(child.aValueWas).toBe("abc");
+        });
+
+        it ("Should $digest from the root on $apply", function () {
+            var parent = new Scope();
+            var child = parent.$new();
+            var child2 = child.$new();
+            parent.aValue = "abc";
+            parent.counter = 0;
+            parent.$watch(
+                function (scope) {
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            child2.$apply(function (scope) {
+            });
+            expect(parent.counter).toBe(1);
+        });
+
+        it ("Should schedule a $digest from the root on $evalAsync", function (done) {
+            var parent = new Scope();
+            var child = parent.$new();
+            var child2 = child.$new();
+            parent.aValue = "abc";
+            parent.counter = 0;
+            parent.$watch(
+                function (scope) {
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            child2.$evalAsync(function (scope) {
+            })
+            setTimeout(function () {
+                expect(parent.counter).toBe(1);
+                done();
+            }, 50);
+        });
+
+        it ("Should not be possible to get access to parent attributes when the child scope is isolated", function () {
+            var parent = new Scope();
+            var child = parent.$new(true);
+            parent.aValue = "abc";
+            expect(child.aValue).toBeUndefined();
+        });
+
+        it ("Should not be possible to $watch parent attributes when the child scope is isolated", function () {
+            var parent = new Scope();
+            var child = parent.$new(true);
+            parent.aValue = "abc";
+            child.$watch(
+                function (scope) {
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.aValueWas = newValue;
+                }
+            );
+            child.$digest();
+            expect(child.aValueWas).toBeUndefined();
+        });
+
+        it ("Should $digest children of an isolated scope", function() {
+            var parent = new Scope();
+            var child = parent.$new(true);
+            child.aValue = "abc";
+            child.$watch(
+                function(scope) {
+                    return scope.aValue;
+                },
+                function(newValue, oldValue, scope) {
+                    scope.aValueWas = newValue;
+                }
+            );
+            parent.$digest();
+            expect(child.aValueWas).toBe("abc");
+        });
+
+        it ("Should visit child scopes on $digest even when the child scope is isolated", function () {
+            var parent = new Scope();
+            var child = parent.$new(true);
+            var child2 = child.$new();
+            parent.aValue = "abc";
+            parent.counter = 0;
+            parent.$watch(
+                function (scope) {
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            child2.$apply(function () {
+            });
+            expect(parent.counter).toBe(1);
+        });
+
+        it ("Should schedule a $digest from the root when calling $evalAsync on an isolated scope", function (done) {
+            var parent = new Scope();
+            var child = parent.$new(true);
+            var child2 = child.$new();
+            parent.aValue = "abc";
+            parent.counter = 0;
+            parent.$watch(
+                function (scope) {
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            child2.$evalAsync(function () {
+            })
+            setTimeout(function () {
+                expect(parent.counter).toBe(1);
+                done();
+            }, 50);
+        });
+
+        it ("Should execute $evalAsync functions on isolated scopes", function (done) {
+            var parent = new Scope();
+            var child = parent.$new(true);
+            child.$evalAsync(function (scope) {
+                scope.didEvalAsync = true;
+            });
+            setTimeout(function () {
+                expect(child.didEvalAsync).toBe(true);
+                done();
+            }, 50);
+        });
+
+        it ("Should execute $$postDigest functions on isolated scopes", function () {
+            var parent = new Scope();
+            var child = parent.$new(true);
+            child.$$postDigest(function () {
+                child.didPostDigest = true;
+            });
+            parent.$digest();
+            expect(child.didPostDigest).toBe(true);
+        });
+
+        it ("Should possible to $destroy a child scope, so it is no longer in the $digest cycle", function () {
+            var parent = new Scope();
+            var child = parent.$new();
+
+            child.aValue = [1,2,3];
+            child.counter = 0;
+            child.$watch(
+                function (scope) {
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                },
+                true
+            );
+            parent.$digest();
+            expect(child.counter).toBe(1);
+            child.aValue.push(4);
+            parent.$digest();
+            expect(child.counter).toBe(2);
+            child.$destroy();
+            child.aValue.push(5);
+            parent.$digest();
+            expect(child.counter).toBe(2);
+        });
+
     });
 });
