@@ -1,6 +1,7 @@
 "use strict";
 
-function Scope() {
+function Scope(name) {
+    print(name);
     this.$$watchers = [];
     this.$$lastDirtyWatch = null;
     this.$$asyncQueue = [];
@@ -8,14 +9,23 @@ function Scope() {
     this.$$children = [];
     this.$$root = this;
     this.$$phase = null;
+    this.$$name = name;
 }
 
 function initWatchVal() {}
 
-Scope.prototype.$new = function (isolated) {
+function print(name) {
+    if (name) {
+        console.log("Scopename : " + name);
+    }
+}
+
+Scope.prototype.$new = function (isolated, name) {
+    print(name);
     var child;
     if (isolated) {
-        child = new Scope();
+        console.log("isolated");
+        child = new Scope(name);
         child.$$root = this.$$root;
         child.$$asyncQueue = this.$$asyncQueue;
         child.$$postDigestQueue = this.$$postDigestQueue;
@@ -32,12 +42,17 @@ Scope.prototype.$new = function (isolated) {
 };
 
 Scope.prototype.$destroy = function () {
-    if (this == this.$$root) {
+    if (this === this.$$root) {
+        console.log("return we are at the root");
         return;
     }
     var siblings = this.$parent.$$children;
+    _.forEach(siblings, function (s) {
+        print(s.$$name);
+    });
     var indexOfThis = siblings.indexOf(this);
     if (indexOfThis > 0) {
+        console.log("removing");
         siblings.splice(indexOfThis, 1);
     }
 };
@@ -129,9 +144,7 @@ Scope.prototype.$clearPhase = function () {
 };
 
 Scope.prototype.$$digestOnce = function () {
-    var self = this;
-    var dirty = false;
-    var continueLoop = true;
+    var dirty;
     this.$$everyScope(function (scope) {
         var newValue;
         var oldValue;
@@ -149,7 +162,7 @@ Scope.prototype.$$digestOnce = function () {
                         watcher.listenerFn(newValue, oldValue, scope);
                         dirty = true;
                     } else if (scope.$$root.$$lastDirtyWatch === watcher) {
-                        continueLoop = false;
+                        dirty = false;
                         return false;
                     }
                 }
@@ -157,7 +170,7 @@ Scope.prototype.$$digestOnce = function () {
                 console.log(e);
             }
         });
-        return continueLoop;
+        return dirty !== false;
     });
     return dirty;
 };
@@ -183,45 +196,3 @@ Scope.prototype.$$everyScope = function (fn) {
         return false;
     }
 };
-
-
-/* Helpers */
-
-function printWatcher(watcher, spacer) {
-    console.log(spacer + "    watcher [");
-    console.log(spacer + "      watchFn: " + watcher.watchFn);
-    console.log(spacer + "      listenerFn: " + watcher.listenerFn);
-    console.log(spacer + "      valueEq: " + watcher.valueEq);
-    console.log(spacer + "      last: " + watcher.last);
-    console.log(spacer + "    ]");
-}
-
-function print(scope, indent, amount) {
-    indent = indent ? indent : 0;
-    if (amount && amount > 0) {
-        indent += amount;
-    }
-    var spacer = Array(indent).join(" ");
-    console.log(spacer + "Scope [");
-    console.log(spacer +"  $$watchers [");
-    _.forEach(scope.$$watchers, function (watcher) {
-        printWatcher(watcher, spacer);
-    });
-    console.log(spacer + "  ]");
-    console.log(spacer + "  $$lastDirtyWatch [");
-    if (scope.$$lastDirtyWatch) {
-        console.log(spacer + printWatcher(scope.$$lastDirtyWatch, spacer));
-    } else {
-        console.log("No $lastDirtyWatch");
-    }
-    console.log(spacer + "  ]");
-    console.log(spacer + "]");
-
-    console.log("-------------------------------------------------------------------------");
-//    console.log(spacer + "  $$parent [");
-//    console.log(spacer + "  ]");
-//    console.log(spacer + "  $$children [")
-//    _.forEach(scope.$$children, function (child) {
-//        print(child, 3, 2);
-//    });
-}
