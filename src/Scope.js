@@ -42,6 +42,16 @@ Scope.prototype.$destroy = function () {
     }
 };
 
+Scope.prototype.$watchCollection = function (watchFn, listenerFn) {
+    var internalWatchFn = function (scope) {
+
+    };
+    var internalListenerFn = function () {
+
+    };
+    return this.$watch(internalWatchFn, internalListenerFn);
+};
+
 Scope.prototype.$watch = function (watchFn, listenerFn, valueEq) {
     var self = this;
     var watcher = {
