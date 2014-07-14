@@ -1,7 +1,6 @@
 "use strict";
 
-function Scope(name) {
-    print(name);
+function Scope() {
     this.$$watchers = [];
     this.$$lastDirtyWatch = null;
     this.$$asyncQueue = [];
@@ -9,23 +8,14 @@ function Scope(name) {
     this.$$children = [];
     this.$$root = this;
     this.$$phase = null;
-    this.$$name = name;
 }
 
 function initWatchVal() {}
 
-function print(name) {
-    if (name) {
-        console.log("Scopename : " + name);
-    }
-}
-
-Scope.prototype.$new = function (isolated, name) {
-    print(name);
+Scope.prototype.$new = function (isolated) {
     var child;
     if (isolated) {
-        console.log("isolated");
-        child = new Scope(name);
+        child = new Scope();
         child.$$root = this.$$root;
         child.$$asyncQueue = this.$$asyncQueue;
         child.$$postDigestQueue = this.$$postDigestQueue;
@@ -42,19 +32,24 @@ Scope.prototype.$new = function (isolated, name) {
 };
 
 Scope.prototype.$destroy = function () {
-    if (this === this.$$root) {
-        console.log("return we are at the root");
+    if (this == this.$$root) {
         return;
     }
     var siblings = this.$parent.$$children;
-    _.forEach(siblings, function (s) {
-        print(s.$$name);
-    });
     var indexOfThis = siblings.indexOf(this);
-    if (indexOfThis > 0) {
-        console.log("removing");
+    if (indexOfThis >= 0) {
         siblings.splice(indexOfThis, 1);
     }
+};
+
+Scope.prototype.$watchCollection = function (watchFn, listenerFn) {
+    var internalWatchFn = function (scope) {
+
+    };
+    var internalListenerFn = function () {
+
+    };
+    return this.$watch(internalWatchFn, internalListenerFn);
 };
 
 Scope.prototype.$watch = function (watchFn, listenerFn, valueEq) {
@@ -144,7 +139,9 @@ Scope.prototype.$clearPhase = function () {
 };
 
 Scope.prototype.$$digestOnce = function () {
-    var dirty;
+    var self = this;
+    var dirty = false;
+    var continueLoop = true;
     this.$$everyScope(function (scope) {
         var newValue;
         var oldValue;
@@ -162,7 +159,7 @@ Scope.prototype.$$digestOnce = function () {
                         watcher.listenerFn(newValue, oldValue, scope);
                         dirty = true;
                     } else if (scope.$$root.$$lastDirtyWatch === watcher) {
-                        dirty = false;
+                        continueLoop = false;
                         return false;
                     }
                 }
@@ -170,7 +167,7 @@ Scope.prototype.$$digestOnce = function () {
                 console.log(e);
             }
         });
-        return dirty !== false;
+        return continueLoop;
     });
     return dirty;
 };
@@ -196,3 +193,4 @@ Scope.prototype.$$everyScope = function (fn) {
         return false;
     }
 };
+

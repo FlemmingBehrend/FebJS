@@ -1,7 +1,7 @@
 "use strict";
 
 describe("Scope", function () {
-/*
+
     it("Should be possible to create and instance and use it as an object", function () {
         var scope = new Scope();
         scope.aProperty = 1;
@@ -872,10 +872,10 @@ describe("Scope", function () {
             parent.$digest();
             expect(child.didPostDigest).toBe(true);
         });
-*/
+
         it ("Should possible to $destroy a child scope, so it is no longer in the $digest cycle", function () {
-            var parent = new Scope("parent");
-            var child = parent.$new(false, "child");
+            var parent = new Scope();
+            var child = parent.$new();
 
             child.aValue = [1,2,3];
             child.counter = 0;
@@ -899,5 +899,15 @@ describe("Scope", function () {
             expect(child.counter).toBe(2);
         });
 
-//    });
+    });
+
+    describe("watchCollection", function () {
+
+        var scope;
+
+        beforeEach(function () {
+            scope = new Scope();
+        });
+
+    });
 });
