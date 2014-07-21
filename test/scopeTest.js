@@ -1254,4 +1254,270 @@ describe("Scope", function () {
             expect(oldGivenValue).toEqual({a:1, b:2});
         });
     });
+
+    describe("events", function () {
+
+        var parent;
+        var scope;
+        var child;
+        var isolatedScope;
+
+        beforeEach(function () {
+            parent = new Scope();
+            scope = parent.$new();
+            child = scope.$new();
+            isolatedScope = scope.$new(true);
+        });
+
+        it ("Should be possible to register event listeners", function () {
+            var listenerFn1 = function () {};
+            var listenerFn2 = function () {};
+            var listenerFn3 = function () {};
+            scope.$on("someEvent", listenerFn1);
+            scope.$on("someEvent", listenerFn2);
+            scope.$on("someOtherEvent", listenerFn3);
+            expect(scope.$$listeners).toEqual({
+                someEvent: [listenerFn1, listenerFn2],
+                someOtherEvent: [listenerFn3]
+            });
+        });
+
+        it ("Should have separate $$listeners for each $scope", function () {
+            var listenerFn1 = function () {};
+            var listenerFn2 = function () {};
+            var listenerFn3 = function () {};
+            scope.$on("someEvent", listenerFn1);
+            child.$on("someEvent", listenerFn2);
+            isolatedScope.$on("someEvent", listenerFn3);
+            expect(scope.$$listeners).toEqual({someEvent: [listenerFn1]});
+            expect(child.$$listeners).toEqual({someEvent: [listenerFn2]});
+            expect(isolatedScope.$$listeners).toEqual({someEvent: [listenerFn3]});
+        });
+
+        _.forEach(['$emit', '$broadcast'], function (method) {
+
+            it ("Should call listeners of matching event name on " + method, function () {
+                var listenerFn1 = jasmine.createSpy();
+                var listenerFn2 = jasmine.createSpy();
+                scope.$on("someEvent", listenerFn1);
+                scope.$on("someOtherEvent", listenerFn2);
+                scope.$emit("someEvent");
+                expect(listenerFn1).toHaveBeenCalled();
+                expect(listenerFn2).not.toHaveBeenCalled();
+            });
+
+            it ("Should pass an event object with an attribute 'name' to listeners on " + method, function () {
+                var listenerFn = jasmine.createSpy();
+                scope.$on("someEvent", listenerFn);
+                scope[method]("someEvent");
+                expect(listenerFn).toHaveBeenCalled();
+                expect(listenerFn.calls.mostRecent().args[0].name).toEqual("someEvent");
+            });
+
+            it ("Should pass the same event object to each listener on " + method, function () {
+                var listenerFn1 = jasmine.createSpy();
+                var listenerFn2 = jasmine.createSpy();
+                scope.$on("someEvent", listenerFn1);
+                scope.$on("someEvent", listenerFn2);
+                scope[method]("someEvent");
+                var event1 = listenerFn1.calls.mostRecent().args[0];
+                var event2 = listenerFn2.calls.mostRecent().args[0];
+                expect(event1).toBe(event2);
+            });
+
+            it ("Should be possible to pass additional arguments to listeners on " + method, function () {
+                var listenerFn = jasmine.createSpy();
+                scope.$on("someEvent", listenerFn);
+                scope[method]("someEvent", "and", ["additional", "arguments"], "...");
+                expect(listenerFn.calls.mostRecent().args[1]).toEqual("and");
+                expect(listenerFn.calls.mostRecent().args[2]).toEqual(["additional", "arguments"]);
+                expect(listenerFn.calls.mostRecent().args[3]).toEqual("...");
+            });
+
+            it ("Should return the event object on " + method, function () {
+                var returnedEvent = scope[method]("someEvent");
+                expect(returnedEvent).toBeDefined();
+                expect(returnedEvent.name).toEqual("someEvent");
+            });
+
+            it ("Should be possible to deregister an listener on " + method, function () {
+                var listenerFn = jasmine.createSpy();
+                var deregister = scope.$on("someEvent", listenerFn);
+                deregister();
+                scope[method]("someEvent");
+                expect(listenerFn).not.toHaveBeenCalled();
+            });
+
+            it ("Should not skip the next listener when removed on " + method, function () {
+                var deregister;
+                var listenerFn = function () {
+                    deregister();
+                };
+                var nextListener = jasmine.createSpy();
+                deregister = scope.$on("someEvent", listenerFn);
+                scope.$on("someEvent", nextListener);
+                scope[method]("someEvent");
+                expect(nextListener).toHaveBeenCalled();
+            });
+
+            it ("Should set defaultPrevented flag to true when preventDefault() is called on " + method, function () {
+                var listenerFn = function (event) {
+                    event.preventDefault();
+                };
+                scope.$on("someEvent", listenerFn);
+                var event = scope[method]("someEvent");
+                expect(event.defaultPrevented).toBe(true);
+            });
+
+            it ("Should not stop on exceptions on " + method, function () {
+                var listenerFn1 = function (event) {
+                    throw "listenerFn1 is throwing an exception";
+                };
+                var listenerFn2 = jasmine.createSpy();
+                scope.$on("someEvent", listenerFn1);
+                scope.$on("someEvent", listenerFn2);
+                scope[method]("someEvent");
+                expect(listenerFn2).toHaveBeenCalled();
+            });
+        });
+
+        it ("Should propagate up the $scope hierarchy on $emit", function () {
+            var parentListenerFn = jasmine.createSpy();
+            var scopeListenerFn = jasmine.createSpy();
+            var childListenerFn = jasmine.createSpy();
+            parent.$on("someEvent", parentListenerFn);
+            scope.$on("someEvent", scopeListenerFn);
+            child.$on("someEvent", childListenerFn);
+            scope.$emit("someEvent");
+            expect(scopeListenerFn).toHaveBeenCalled();
+            expect(parentListenerFn).toHaveBeenCalled();
+            expect(childListenerFn).not.toHaveBeenCalled();
+        });
+
+        it ("Should propagate the same event object up on $emit", function () {
+            var parentListenerFn = jasmine.createSpy();
+            var scopeListenerFn = jasmine.createSpy();
+            parent.$on("someEvent", parentListenerFn);
+            scope.$on("someEvent", scopeListenerFn);
+            scope.$emit("someEvent");
+            var scopeEvent = scopeListenerFn.calls.mostRecent().args[0];
+            var parentEvent = parentListenerFn.calls.mostRecent().args[0];
+            expect(scopeEvent).toBe(parentEvent);
+        });
+
+        it ("Should propagate down the $scope hierarchy on $broadcast", function () {
+            var parentListenerFn = jasmine.createSpy();
+            var scopeListenerFn = jasmine.createSpy();
+            var childListenerFn = jasmine.createSpy();
+            var isolatedChildListenerFn = jasmine.createSpy();
+            parent.$on("someEvent", parentListenerFn);
+            scope.$on("someEvent", scopeListenerFn);
+            child.$on("someEvent", childListenerFn);
+            isolatedScope.$on("someEvent", isolatedChildListenerFn);
+            scope.$broadcast("someEvent");
+            expect(parentListenerFn).not.toHaveBeenCalled();
+            expect(scopeListenerFn).toHaveBeenCalled();
+            expect(childListenerFn).toHaveBeenCalled();
+            expect(isolatedChildListenerFn).toHaveBeenCalled();
+        });
+
+        it ("Should propagate the same event object down on $broadcast", function () {
+            var scopeListenerFn = jasmine.createSpy();
+            var childListenerFn = jasmine.createSpy();
+            scope.$on("someEvent", scopeListenerFn);
+            child.$on("someEvent", childListenerFn);
+            scope.$broadcast("someEvent");
+            var scopeEvent = scopeListenerFn.calls.mostRecent().args[0];
+            var childEvent = childListenerFn.calls.mostRecent().args[0];
+            expect(scopeEvent).toBe(childEvent);
+        });
+
+        it ("Should attach targetScope on $emit", function () {
+            var scopeListenerFn = jasmine.createSpy();
+            var parentListenerFn = jasmine.createSpy();
+            scope.$on("someEvent", scopeListenerFn);
+            parent.$on("someEvent", parentListenerFn);
+            scope.$emit("someEvent");
+            expect(scopeListenerFn.calls.mostRecent().args[0].targetScope).toBe(scope);
+            expect(parentListenerFn.calls.mostRecent().args[0].targetScope).toBe(scope);
+        });
+
+        it ("Should attach targetScope on $broadcast", function () {
+            var scopeListenerFn = jasmine.createSpy();
+            var childListenerfn = jasmine.createSpy();
+            scope.$on("someEvent", scopeListenerFn);
+            child.$on("someEvent", childListenerfn);
+            scope.$broadcast("someEvent");
+            expect(scopeListenerFn.calls.mostRecent().args[0].targetScope).toBe(scope);
+            expect(childListenerfn.calls.mostRecent().args[0].targetScope).toBe(scope);
+        });
+
+        it ("Should attach currentScope on $emit", function () {
+            var currentScopeOnScope;
+            var currentScopeOnParent;
+            var scopeListenerFn = function (event) {
+                currentScopeOnScope = event.currentScope;
+            };
+            var parentListenerFn = function (event) {
+                currentScopeOnParent = event.currentScope;
+            };
+            scope.$on("someEvent", scopeListenerFn);
+            parent.$on("someEvent", parentListenerFn);
+            scope.$emit("someEvent");
+            expect(currentScopeOnScope).toBe(scope);
+            expect(currentScopeOnParent).toBe(parent);
+        });
+
+        it ("Should attach currentScope on $broadcast", function () {
+            var currentScopeOnScope;
+            var currentScopeOnChild;
+            var scopeListenerFn = function(event) {
+                currentScopeOnScope = event.currentScope;
+            };
+            var childListenerFn = function(event) {
+                currentScopeOnChild = event.currentScope;
+            };
+            scope.$on("someEvent", scopeListenerFn);
+            child.$on("someEvent", childListenerFn);
+            scope.$broadcast("someEvent");
+            expect(currentScopeOnScope).toBe(scope);
+            expect(currentScopeOnChild).toBe(child);
+        });
+
+        it ("Should not propagate the event to parents when stopped", function () {
+            var scopeListenerFn = function (event) {
+                event.stopPropagation();
+            };
+            var parentListenerFn = jasmine.createSpy();
+            scope.$on("someEvent", scopeListenerFn);
+            parent.$on("someEvent", parentListenerFn);
+            scope.$emit("someEvent");
+            expect(parentListenerFn).not.toHaveBeenCalled();
+        });
+
+        it ("Should be recieved by listeners on current scope after being stopped", function () {
+            var listenerFn1 = function (event) {
+                event.stopPropagation();
+            };
+            var listenerFn2 = jasmine.createSpy();
+            scope.$on("someEvent", listenerFn1);
+            scope.$on("someEvent", listenerFn2);
+            scope.$emit("someEvent");
+            expect(listenerFn2).toHaveBeenCalled();
+        });
+
+        it ("Should fire $destoy event when $destroy is called on $scope", function () {
+            var listenerFn = jasmine.createSpy();
+            scope.$on("$destroy", listenerFn);
+            scope.$destroy();
+            expect(listenerFn).toHaveBeenCalled();
+        });
+
+        it ("Should fire $destroy events on children when $destroy is called on $scope", function () {
+            var listenerFn = jasmine.createSpy();
+            child.$on("$destroy", listenerFn);
+            scope.$destroy();
+            expect(listenerFn).toHaveBeenCalled();
+        });
+    });
 });
