@@ -1,3 +1,4 @@
+/* jshint globalstrict: true */
 "use strict";
 
 function Scope() {
@@ -46,18 +47,82 @@ Scope.prototype.$watchCollection = function (watchFn, listenerFn) {
     var self = this;
     var newValue;
     var oldValue;
+    var oldLength;
+    var veryOldValue;
+    var trackVeryOldValue = (listenerFn.length > 1);
     var changeCounter = 0;
+    var firstRun = true;
 
     var internalWatchFn = function (scope) {
+        var key;
+        var newLength;
         newValue = watchFn(scope);
-        if (!self.$$areEqual(newValue, oldValue, false)) {
-            changeCounter++;
+        if (_.isObject(newValue)) {
+            if (_.isArrayLike(newValue)) {
+                if (!_.isArray(oldValue)) {
+                    changeCounter++;
+                    oldValue = [];
+                }
+                if (newValue.length !== oldValue.length) {
+                    changeCounter++;
+                    oldValue.length = newValue.length;
+                }
+                _.forEach(newValue, function (newItem, i) {
+                    if (newItem !== oldValue[i]) {
+                        changeCounter++;
+                        oldValue[i] = newItem;
+                    }
+                });
+            } else {
+                if (!_.isObject(oldValue) || _.isArrayLike(oldValue)) {
+                    changeCounter++;
+                    oldValue = {};
+                    oldLength = 0;
+                }
+                newLength = 0;
+                for (key in newValue) {
+                    if (newValue.hasOwnProperty(key)) {
+                        newLength++;
+                        if (oldValue.hasOwnProperty(key)) {
+                            if (oldValue[key] !== newValue[key]) {
+                                changeCounter++;
+                                oldValue[key] = newValue[key];
+                            }
+                        } else {
+                            changeCounter++;
+                            oldLength++;
+                            oldValue[key] = newValue[key];
+                        }
+                    }
+                }
+                if (oldLength > newLength) {
+                    changeCounter++;
+                    for (key in oldValue) {
+                        if (oldValue.hasOwnProperty(key) && !newValue.hasOwnProperty(key)) {
+                            oldLength--;
+                            delete oldValue[key];
+                        }
+                    }
+                }
+            }
+        } else {
+            if (!self.$$areEqual(newValue, oldValue, false)) {
+                changeCounter++;
+            }
+            oldValue = newValue;
         }
-        oldValue = newValue;
         return changeCounter;
     };
     var internalListenerFn = function () {
-        listenerFn(newValue, oldValue, self);
+        if (firstRun) {
+            listenerFn(newValue, oldValue, self);
+            firstRun = false;
+        } else {
+            listenerFn(newValue, veryOldValue, self);
+        }
+        if (trackVeryOldValue) {
+            veryOldValue = _.clone(newValue);
+        }
     };
     return this.$watch(internalWatchFn, internalListenerFn);
 };

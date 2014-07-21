@@ -941,7 +941,7 @@ describe("Scope", function () {
                 },
                 function (newValue, oldValue, scope) {
                     scope.counter++;
-                }
+            }
             );
             scope.$digest();
             expect(scope.counter).toBe(1);
@@ -949,5 +949,309 @@ describe("Scope", function () {
             expect(scope.counter).toBe(1);
         });
 
+        it ("Should notice when a value becomes an array", function () {
+            scope.counter = 0;
+            scope.$watchCollection(
+                function (scope) {
+                    return scope.arr;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            scope.arr = [1,2,3];
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+
+        it ("Should notice when an item is added to an array", function () {
+            scope.counter = 0;
+            scope.arr = [1,2,3];
+            scope.$watchCollection(
+                function (scope) {
+                    return scope.arr;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            scope.arr.push(4);
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+
+        it ("Should notice when an item is removed from an array", function () {
+            scope.counter = 0;
+            scope.arr = [1,2,3];
+            scope.$watchCollection(
+                function (scope) {
+                    return scope.arr;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            scope.arr.pop();
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+
+        it ("Should notice when an item is replaced in an array", function () {
+            scope.counter = 0;
+            scope.arr = [1,2,3];
+            scope.$watchCollection(
+                function (scope) {
+                    return scope.arr;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            scope.arr[1] = 42;
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+
+        it ("Should notice when items inside an array are reordered", function () {
+            scope.counter = 0;
+            scope.arr = [2,1,3];
+            scope.$watchCollection(
+                function (scope) {
+                    return scope.arr;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            scope.arr.sort();
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+
+        it ("Should notice an item replaced in an argument object", function () {
+            (function() {
+                scope.arrayLike = arguments;
+            })(1,2,3);
+            scope.counter = 0;
+            scope.$watchCollection(
+                function (scope) {
+                    return scope.arrayLike;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            scope.arrayLike[1] = 42;
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+
+        it ("Should notice an item replaced in an NoteList object", function () {
+            document.documentElement.appendChild(document.createElement('div'));
+            scope.arrayLike = document.getElementsByTagName('div');
+            scope.counter = 0;
+            scope.$watchCollection(
+                function (scope) {
+                    return scope.arrayLike;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            document.documentElement.appendChild(document.createElement('div'));
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+
+        it ("Should notice when a value becomes an object", function () {
+            scope.counter = 0;
+            scope.$watchCollection(
+                function (scope) {
+                    return scope.obj;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            scope.obj = {a: 1};
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+
+        it ("Should notice when an attribute is added to an object", function () {
+            scope.counter = 0;
+            scope.obj = {a:0};
+            scope.$watchCollection(
+                function (scope) {
+                    return scope.obj;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            scope.obj.b = 1;
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+
+        it ("Should notice when an attribute is changing in an object", function () {
+            scope.counter = 0;
+            scope.obj = {a:0};
+            scope.$watchCollection(
+                function (scope) {
+                    return scope.obj;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            scope.obj.a = 1;
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+
+        it ("Should notice when an attribute is removed from an object", function () {
+            scope.counter = 0;
+            scope.obj = {a:0};
+            scope.$watchCollection(
+                function (scope) {
+                    return scope.obj;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            delete scope.obj.a;
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+
+        it ("Should not consider an object with an attribute named 'length' to be an array", function () {
+            scope.counter = 0;
+            scope.obj = {length:42, otherKey:'abc'};
+            scope.$watchCollection(
+                function (scope) {
+                    return scope.obj;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            scope.obj.newKey = 'def';
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+
+        it ("Should give the old non-collection value to listeners", function () {
+            scope.aValue = 42;
+            var oldGivenValue;
+            scope.$watchCollection(
+                function (scope) {
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                    oldGivenValue = oldValue;
+                }
+            );
+            scope.$digest();
+            scope.aValue = 43;
+            scope.$digest();
+            expect(oldGivenValue).toBe(42);
+        });
+
+        it ("Should give the old array value to listerners", function () {
+            scope.aValue = [1, 2, 3];
+            var oldValueGiven;
+            scope.$watchCollection(
+                function(scope) {
+                    return scope.aValue;
+                },
+                function(newValue, oldValue, scope) {
+                    oldValueGiven = oldValue;
+                }
+            );
+            scope.$digest();
+            scope.aValue.push(4);
+            scope.$digest();
+            expect(oldValueGiven).toEqual([1, 2, 3]);
+        })
+
+        it ("Should give the old object to the listerners", function () {
+            scope.aValue = {a:1, b:2};
+            var oldValueGiven;
+            scope.$watchCollection(
+                function(scope) {
+                    return scope.aValue;
+                },
+                function(newValue, oldValue, scope) {
+                    oldValueGiven = oldValue;
+                }
+            );
+            scope.$digest();
+            scope.aValue.c = 3;
+            scope.$digest();
+            expect(oldValueGiven).toEqual({a:1, b:2});
+        });
+        
+        it ("Should use the newValue as the oldValue on first $digest", function () {
+            scope.aValue = {a:1, b:2};
+            var oldGivenValue;
+            scope.$watchCollection(
+                function (scope) {
+                    return scope.aValue;
+                },
+                function (newValue, oldValue, scope) {
+                    oldGivenValue = oldValue;
+                }
+            );
+            scope.$digest();
+            expect(oldGivenValue).toEqual({a:1, b:2});
+        });
     });
 });
