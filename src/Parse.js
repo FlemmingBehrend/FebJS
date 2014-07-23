@@ -21,11 +21,36 @@ Lexer.prototype.lex = function (text) {
         this.ch = this.text.charAt(this.index);
         if (this.isNumber(this.ch) || (this.ch === '.' && this.isNumber(this.peek()))) {
             this.readNumber();
+        } else if (this.ch === "'" || this.ch === '"') {
+            this.readString(this.ch);
         } else {
             throw "Uexpected nect character: " + this.ch;
         }
     }
     return this.tokens;
+};
+
+Lexer.prototype.readString = function (quote) {
+    this.index++;
+    var rawString = quote;
+    var string = '';
+    while (this.index < this.text.length) {
+        var ch = this.text.charAt(this.index);
+        rawString += ch;
+        if (ch === quote) {
+            this.index++;
+            this.tokens.push({
+                text: rawString,
+                json: true,
+                fn: _.constant(string)
+            });
+            return;
+        } else {
+            string += ch;
+        }
+        this.index++;
+    }
+    throw 'Unmatched quote';
 };
 
 Lexer.prototype.isNumber = function(ch) {

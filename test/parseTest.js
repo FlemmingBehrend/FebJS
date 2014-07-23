@@ -56,4 +56,23 @@ describe("Parse", function () {
         expect(function() { parse('42e-a'); }).toThrow();
     });
 
+    it ("Should be possible to parse a string in single quotes", function () {
+        var fn = parse("'abc'");
+        expect(fn()).toEqual('abc');
+    });
+
+    it ("Should be possible to parse a string in double quotes", function () {
+        var fn = parse('"abc"');
+        expect(fn()).toEqual("abc");
+    });
+
+    it ("Should not parse a string with mismatching quotes", function () {
+        expect(function () { parse("'abc\""); }).toThrow();
+    });
+
+    it ("Should mark strings as literal and constant", function() {
+        var fn = parse('"abc"');
+        expect(fn.literal).toBe(true);
+        expect(fn.constant).toBe(true);
+    });
 });
