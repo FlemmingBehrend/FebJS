@@ -19,7 +19,7 @@ Lexer.prototype.lex = function (text) {
 
     while (this.index < this.text.length) {
         this.ch = this.text.charAt(this.index);
-        if (this.isNumber(this.ch)) {
+        if (this.isNumber(this.ch) || (this.ch === '.' && this.isNumber(this.peek()))) {
             this.readNumber();
         } else {
             throw "Uexpected nect character: " + this.ch;
@@ -35,19 +35,41 @@ Lexer.prototype.isNumber = function(ch) {
 Lexer.prototype.readNumber = function () {
     var number = '';
     while (this.index < this.text.length) {
-        var ch = this.text.charAt(this.index);
-        if (this.isNumber(ch)) {
+        var ch = this.text.charAt(this.index).toLowerCase();
+        if (ch === '.' || this.isNumber(ch)) {
             number += ch;
         } else {
-            break;
+            var nextCh = this.peek();
+            var prevCh = number.charAt(number.length-1);
+            if (ch === 'e' && this.isExpOperator(nextCh)) {
+                number += ch;
+            } else if (this.isExpOperator(ch) && prevCh === 'e' && nextCh && this.isNumber(nextCh)) {
+                number += ch;
+            } else if (this.isExpOperator(ch) && prevCh === 'e' && (!nextCh || !this.isNumber(nextCh))) {
+                throw "Invalid exponent";
+            } else {
+                break;
+            }
         }
         this.index++;
     }
     number = 1 * number;
     this.tokens.push({
         text: number,
-        fn: _.constant(number)
+        fn: _.constant(number),
+        json: true
     });
+};
+
+Lexer.prototype.peek = function () {
+    if (this.index < this.text.length-1) {
+        return this.text.charAt(this.index+1);
+    }
+    return false;
+};
+
+Lexer.prototype.isExpOperator = function (ch) {
+    return ch === '-' || ch === '+' || this.isNumber(ch);
 };
 
 function Parser(lexer) {
@@ -56,5 +78,15 @@ function Parser(lexer) {
 
 Parser.prototype.parse = function (text) {
     this.tokens = this.lexer.lex(text);
-    return _.first(this.tokens).fn;
+    return this.primary();
+};
+
+Parser.prototype.primary = function () {
+    var token = this.tokens[0];
+    var primary = token.fn;
+    if (token.json) {
+        primary.constant = true;
+        primary.literal = true;
+    }
+    return primary;
 };
