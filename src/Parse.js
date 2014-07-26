@@ -26,8 +26,16 @@ Lexer.prototype.lex = function (text) {
             this.readNumber();
         } else if (this.ch === "'" || this.ch === '"') {
             this.readString(this.ch);
+        } else if (this.ch === "[" || this.ch === "]" || this.ch === ",") {
+            this.tokens.push({
+                text: this.ch,
+                json: true
+            });
+            this.index++;
         } else if (this.isIdent(this.ch)) {
             this.readIdent();
+        } else if (this.isWhitespace(this.ch)) {
+            this.index++;
         } else {
             throw "Uexpected nect character: " + this.ch;
         }
@@ -35,8 +43,20 @@ Lexer.prototype.lex = function (text) {
     return this.tokens;
 };
 
+Lexer.prototype.isWhitespace = function (ch) {
+    return (ch === ' ' || ch === '\r' || ch === '\t' || ch === '\n' || ch === '\v' || ch === '\u00A0');
+};
+
 Lexer.prototype.isIdent = function (ch) {
     return (ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z") || ch === "_" || ch === "$";
+};
+
+Lexer.prototype.isNumber = function(ch) {
+    return '0' <= ch && ch <= '9';
+};
+
+Lexer.prototype.isExpOperator = function (ch) {
+    return ch === '-' || ch === '+' || this.isNumber(ch);
 };
 
 Lexer.prototype.readIdent = function () {
@@ -100,10 +120,6 @@ Lexer.prototype.readString = function (quote) {
     throw 'Unmatched quote';
 };
 
-Lexer.prototype.isNumber = function(ch) {
-    return '0' <= ch && ch <= '9';
-};
-
 Lexer.prototype.readNumber = function () {
     var number = '';
     while (this.index < this.text.length) {
@@ -140,10 +156,6 @@ Lexer.prototype.peek = function () {
     return false;
 };
 
-Lexer.prototype.isExpOperator = function (ch) {
-    return ch === '-' || ch === '+' || this.isNumber(ch);
-};
-
 function Parser(lexer) {
     this.lexer = lexer;
 }
@@ -154,11 +166,59 @@ Parser.prototype.parse = function (text) {
 };
 
 Parser.prototype.primary = function () {
-    var token = this.tokens[0];
-    var primary = token.fn;
-    if (token.json) {
-        primary.constant = true;
-        primary.literal = true;
+    var primary;
+    if (this.expect('[')) {
+        primary = this.arrayDeclaration();
+    } else {
+        var token = this.expect();
+        primary = token.fn;
+        if (token.json) {
+            primary.constant = true;
+            primary.literal = true;
+        }
     }
     return primary;
+};
+
+Parser.prototype.expect = function (e) {
+    var token = this.peek(e);
+    if (token) {
+        return this.tokens.shift();
+    }
+};
+
+Parser.prototype.arrayDeclaration = function () {
+    var elementFns = [];
+    if (!this.peek(']')) {
+        do {
+            if (this.peek(']')) {
+                break;
+            }
+            elementFns.push(this.primary());
+        } while (this.expect(','));
+    }
+    this.consume(']');
+    var arrayFn = function () {
+        return _.map(elementFns, function (elementFn) {
+            return elementFn();
+        });
+    };
+    arrayFn.literal = true;
+    arrayFn.constant = true;
+    return arrayFn;
+};
+
+Parser.prototype.consume = function (e) {
+    if (!this.expect(e)) {
+        throw "Unexpected. Expecting " + e;
+    }
+};
+
+Parser.prototype.peek = function (e) {
+    if (this.tokens.length > 0) {
+        var text = this.tokens[0].text;
+        if (text === e || !e) {
+            return this.tokens[0];
+        }
+    }
 };
