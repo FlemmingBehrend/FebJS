@@ -90,4 +90,19 @@ describe("Parse", function () {
         expect(function () {parse("'\\u00T0'");}).toThrow();
     });
 
+    it ("Should parse null", function () {
+        var fn = parse("null");
+        expect(fn()).toBeNull();
+    });
+
+    it ("Should parse true", function () {
+        var fn = parse("true");
+        expect(fn()).toBeTruthy();
+    });
+
+    it ("Should parse false", function () {
+        var fn = parse("false");
+        expect(fn()).toBeFalsy();
+    });
+
 });
