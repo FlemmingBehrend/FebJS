@@ -5,9 +5,16 @@ var ESCAPES = {"n":"\n", "f":"\f", "r":"\r", "t":"\t", "v":"\v", "'":"'", "\"":"
 var OPERATORS = {"null": _.constant(null), "true": _.constant(true), "false": _.constant(false)};
 
 function parse(expr) {
-    var lexer = new Lexer();
-    var parser = new Parser(lexer);
-    return parser.parse(expr);
+    switch (typeof expr) {
+        case 'string':
+            var lexer = new Lexer();
+            var parser = new Parser(lexer);
+            return parser.parse(expr);
+        case 'function':
+            return expr;
+        default:
+            return _.noop;
+    }
 }
 
 function Lexer() {
@@ -22,11 +29,11 @@ Lexer.prototype.lex = function (text) {
 
     while (this.index < this.text.length) {
         this.ch = this.text.charAt(this.index);
-        if (this.isNumber(this.ch) || (this.ch === '.' && this.isNumber(this.peek()))) {
+        if (this.isNumber(this.ch) || (this.is('.') && this.isNumber(this.peek()))) {
             this.readNumber();
-        } else if (this.ch === "'" || this.ch === '"') {
+        } else if (this.is('\'"')) {
             this.readString(this.ch);
-        } else if (this.ch === "[" || this.ch === "]" || this.ch === ",") {
+        } else if (this.is('[],{}:')) {
             this.tokens.push({
                 text: this.ch,
                 json: true
@@ -106,6 +113,7 @@ Lexer.prototype.readString = function (quote) {
             this.index++;
             this.tokens.push({
                 text: rawString,
+                string: string,
                 json: true,
                 fn: _.constant(string)
             });
@@ -156,6 +164,10 @@ Lexer.prototype.peek = function () {
     return false;
 };
 
+Lexer.prototype.is = function (characters) {
+    return characters.indexOf(this.ch) >= 0;
+};
+
 function Parser(lexer) {
     this.lexer = lexer;
 }
@@ -169,6 +181,8 @@ Parser.prototype.primary = function () {
     var primary;
     if (this.expect('[')) {
         primary = this.arrayDeclaration();
+    } else if (this.expect('{')) {
+        primary = this.object();
     } else {
         var token = this.expect();
         primary = token.fn;
@@ -206,6 +220,29 @@ Parser.prototype.arrayDeclaration = function () {
     arrayFn.literal = true;
     arrayFn.constant = true;
     return arrayFn;
+};
+
+Parser.prototype.object = function () {
+    var keyValues = [];
+    if (!this.peek('}')) {
+        do {
+            var keyToken = this.expect();
+            this.consume(':');
+            var valueExpression = this.primary();
+            keyValues.push({key: keyToken.string || keyToken.text, value: valueExpression});
+        } while (this.expect(','));
+    }
+    this.consume('}');
+    var objectFn = function() {
+        var object = {};
+        _.forEach(keyValues, function (kv) {
+            object[kv.key] = kv.value();
+        });
+        return object;
+    };
+    objectFn.literal = true;
+    objectFn.constant = true;
+    return objectFn;
 };
 
 Parser.prototype.consume = function (e) {

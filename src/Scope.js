@@ -1,4 +1,5 @@
 /* jshint globalstrict: true */
+/* global parse: false */
 "use strict";
 
 function Scope() {
@@ -133,7 +134,7 @@ Scope.prototype.$watchCollection = function (watchFn, listenerFn) {
 Scope.prototype.$watch = function (watchFn, listenerFn, valueEq) {
     var self = this;
     var watcher = {
-        watchFn: watchFn,
+        watchFn: parse(watchFn),
         listenerFn: listenerFn || function () {},
         valueEq: !!valueEq,
         last: initWatchVal

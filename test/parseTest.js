@@ -130,4 +130,30 @@ describe("Parse", function () {
         expect(fn.literal).toBeTruthy();
         expect(fn.constant).toBeTruthy();
     });
+
+    it ("Should parse an empty object", function () {
+        var fn = parse("{}");
+        expect(fn()).toEqual({});
+    });
+
+    it ("Should parse a non-empty object", function () {
+        var fn = parse("{a: 1, b: [2,3], c: {d: 4}}");
+        expect(fn()).toEqual({a: 1, b: [2,3], c: {d: 4}});
+    });
+
+    it ("Should parse objects with string keys", function () {
+        var fn = parse('{"a key": 1, \'another-key\': 2}');
+        expect(fn()).toEqual({'a key': 1, 'another-key': 2});
+    });
+
+    it ("Should return the function itself if given one", function () {
+        var fn = function () {
+        };
+        expect(parse(fn)).toBe(fn);
+    });
+
+    it ("Should return a function if given no argument", function () {
+        expect(parse()).toEqual(jasmine.any(Function));
+    });
+
 });

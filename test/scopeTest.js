@@ -593,6 +593,15 @@ describe("Scope", function () {
             scope.$digest();
             expect(scope.counter).toBe(0);
         });
+
+        it ("Should accept expressions for $watch functions", function () {
+            var theValue;
+            scope.$watch('42', function (newValue, oldValue, scope) {
+                theValue = newValue;
+            });
+            scope.$digest();
+            expect(theValue).toBe(42);
+        });
     });
 
     describe("inheritance", function() {
