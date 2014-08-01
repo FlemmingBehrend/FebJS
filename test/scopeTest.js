@@ -602,6 +602,30 @@ describe("Scope", function () {
             scope.$digest();
             expect(theValue).toBe(42);
         });
+
+        it ("Should remove constant watches after first invocation", function () {
+            scope.$watch('42', function () {
+            });
+            scope.$digest();
+            expect(scope.$$watchers.length).toBe(0);
+        });
+
+        it ("Should accept expressions for listener functions", function () {
+            scope.$watch("42", "'fourty-two'");
+            scope.$digest();
+        });
+
+        it ("Should accept expressions in $eval", function () {
+            expect(scope.$eval("42")).toBe(42);
+        });
+
+        it('Should accept expressions in $apply', function() {
+            expect(scope.$apply("42")).toBe(42);
+        });
+        it('Should accept expressions in $evalAsync', function(done) {
+            scope.$evalAsync("42");
+            scope.$$postDigest(done);
+        });
     });
 
     describe("inheritance", function() {
@@ -1261,6 +1285,21 @@ describe("Scope", function () {
             );
             scope.$digest();
             expect(oldGivenValue).toEqual({a:1, b:2});
+        });
+
+        it ("Should accept expressions for watch functions", function () {
+            var theValue;
+            scope.$watchCollection("[1,2,3]", function (newValue, oldValue, scope) {
+                theValue = newValue;
+            });
+            scope.$digest();
+            expect(theValue).toEqual([1,2,3]);
+        });
+
+        it ("Should accept expressions for listener functions", function () {
+            var theValue;
+            scope.$watchCollection("[1,2,3]", "'one-two-three'");
+            scope.$digest();
         });
     });
 
