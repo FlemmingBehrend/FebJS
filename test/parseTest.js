@@ -156,4 +156,81 @@ describe("Parse", function () {
         expect(parse()).toEqual(jasmine.any(Function));
     });
 
+    it ("Should be possible to look up a variable on the scope", function () {
+        var fn = parse("aKey");
+        expect(fn({aKey: 42})).toBe(42);
+        expect(fn({})).toBeUndefined();
+        expect(fn()).toBeUndefined();
+    });
+
+    it ("Should be possible to look up 'dotted' variables on the scope", function () {
+        var fn = parse("aKey.anotherKey");
+        expect(fn({aKey: {anotherKey: 42}})).toBe(42);
+        expect(fn({aKey: {}})).toBeUndefined();
+        expect(fn({})).toBeUndefined();
+    });
+
+    it ("Should be possible go down 4 dots in variables on the scope", function () {
+        var fn = parse("aKey.secondKey.thirdKey.fourthKey");
+        expect(fn({aKey: {secondKey: {thirdKey: {fourthKey: 42}}}})).toBe(42);
+        expect(fn({aKey: {secondKey: {thirdKey: {}}}})).toBeUndefined();
+        expect(fn({aKey: {}})).toBeUndefined();
+        expect(fn()).toBeUndefined();
+    });
+
+    it ("Should use locals instead of scope when there is a matching key", function () {
+        var fn = parse("aKey");
+        expect(fn({aKey: 42}, {aKey: 43})).toBe(43);
+    });
+
+    it ("Should not use locals when there is not a matching key", function () {
+        var fn = parse("aKey");
+        expect(fn({aKey: 42}, {anotherKey: 43})).toBe(42);
+    });
+
+    it ("Should use locals when a 2-part key matches in locals", function() {
+        var fn = parse("aKey.anotherKey");
+        expect(fn(
+            {aKey: {anotherKey: 42}},
+            {aKey: {anotherKey: 43}}
+        )).toBe(43);
+    });
+
+    it ("Should not use locals when a 2-part key does not match", function() {
+        var fn = parse("aKey.anotherKey");
+        expect(fn(
+            {aKey: {anotherKey: 42}},
+            {otherKey: {anotherKey: 43}}
+        )).toBe(42);
+    });
+
+    it ("Should use locals instead of scope when the first part matches", function() {
+        var fn = parse("aKey.anotherKey");
+        expect(fn({aKey: {anotherKey: 42}}, {aKey: {}})).toBeUndefined();
+    });
+
+    it ("Should use locals when there is a matching local 4-part key", function() {
+        var fn = parse("aKey.key2.key3.key4");
+        expect(fn(
+            {aKey: {key2: {key3: {key4: 42}}}},
+            {aKey: {key2: {key3: {key4: 43}}}}
+        )).toBe(43);
+    });
+
+    it ("Should use locals when there is the first part in the local key", function() {
+        var fn = parse("aKey.key2.key3.key4");
+        expect(fn(
+            {aKey: {key2: {key3: {key4: 42}}}},
+            {aKey: {}}
+        )).toBeUndefined();
+    });
+
+    it ("Should not use locals when there is no matching 4-part key", function() {
+        var fn = parse("aKey.key2.key3.key4");
+        expect(fn(
+            {aKey: {key2: {key3: {key4: 42}}}},
+            {otherKey: {anotherKey: 43}}
+        )).toBe(42);
+    });
+
 });

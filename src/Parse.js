@@ -17,6 +17,50 @@ function parse(expr) {
     }
 }
 
+var getterFn = _.memoize(function (ident) {
+    var pathKeys = ident.split(".");
+    if (pathKeys.length === 1) {
+        return simpleGetterFn1(pathKeys[0]);
+    } else if (pathKeys.length === 2) {
+        return simpleGetterFn2(pathKeys[0], pathKeys[1]);
+    } else {
+        return generatedGetterFn(pathKeys);
+    }
+});
+
+var simpleGetterFn1 = function(key) {
+    return function(scope, locals) {
+        if (!scope) {
+            return undefined;
+        }
+        return (locals && locals.hasOwnProperty(key)) ? locals[key] : scope[key];
+    };
+};
+
+var simpleGetterFn2 = function (key1, key2) {
+    return function(scope, locals) {
+        if (!scope) {
+            return undefined;
+        }
+        scope = (locals && locals.hasOwnProperty(key1)) ? locals[key1] : scope[key1];
+        return scope ? scope[key2] : undefined;
+    };
+};
+
+var generatedGetterFn = function (keys) {
+    var code = '';
+    _.forEach(keys, function (key, index) {
+        code += 'if (!scope) { return undefined; }\n';
+        if (index === 0) {
+            code += 'scope = (locals && locals.hasOwnProperty("' + key + '")) ? locals["' + key + '"] : scope["' + key + '"];\n';
+        } else {
+            code += 'scope = scope["' + key + '"];\n';
+        }
+    });
+    code += 'return scope;\n';
+    return new Function('scope', 'locals', code);
+};
+
 function Lexer() {
 
 }
@@ -70,7 +114,7 @@ Lexer.prototype.readIdent = function () {
     var text = '';
     while (this.index < this.text.length) {
         var ch = this.text.charAt(this.index);
-        if (this.isIdent(ch) || this.isNumber(ch)) {
+        if (ch === "." || this.isIdent(ch) || this.isNumber(ch)) {
             text += ch;
         } else {
             break;
@@ -80,6 +124,9 @@ Lexer.prototype.readIdent = function () {
     var token = {text: text};
     if (OPERATORS.hasOwnProperty(text)) {
         token.fn = OPERATORS[text];
+        token.json = true;
+    } else {
+        token.fn = getterFn(text);
     }
     this.tokens.push(token);
 };
