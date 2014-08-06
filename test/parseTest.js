@@ -312,4 +312,65 @@ describe("Parse", function () {
         expect(fn(scopeObj)).toBe(42);
     });
 
+    it ("Should not be allowed to call a functions constructor", function () {
+        expect(function () {
+            var fn = parse("aFunction.constructor(' return window; ')()");
+            fn({aFunction: function() {}});
+        }).toThrow();
+    });
+
+    it ("Should call functions accessed as properties with the correct 'this'", function () {
+        var scopeObj = {
+            anObject: {
+                aMember: 42,
+                aFunction: function () {
+                    return this.aMember;
+                }
+            }
+        };
+        var fn = parse("anObject['aFunction']()");
+        expect(fn(scopeObj)).toBe(42);
+    });
+
+    it ("Should call functions accessed as fields with the correct 'this'", function () {
+        var scopeObj = {
+            anObject: {
+                aMember: 42,
+                aFunction: function () {
+                    return this.aMember;
+                }
+            }
+        };
+        var fn = parse("anObject.aFunction()");
+        expect(fn(scopeObj)).toBe(42);
+    });
+
+    it ("Should be possible to have whitespace before function call", function() {
+        var scope = {
+            anObject: {
+                aMember: 42,
+                aFunction: function() {
+                    return this.aMember;
+                }
+            }
+        };
+        var fn = parse("anObject.aFunction ()");
+        expect(fn(scope)).toBe(42);
+    });
+
+    it ("Should clear the 'this' context on function calls", function () {
+        var scopeObj = {
+            anObject: {
+                aMember: 42,
+                aFunction: function () {
+                    return function () {
+                        return this.aMember;
+                    }
+                }
+            }
+        };
+        var fn = parse("anObject.aFunction()()");
+        expect(fn(scopeObj)).toBeUndefined();
+    });
+
 });
