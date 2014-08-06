@@ -258,4 +258,58 @@ describe("Parse", function () {
         expect(fn({aKey: {anotherKey: {aThirdKey: 42}}})).toBe(42);
     });
 
+    it ("Should be possible to parse a field access after a property access", function () {
+        var fn = parse("aKey['anotherKey'].aThirdKey");
+        expect(fn({aKey: {anotherKey: {aThirdKey: 42}}})).toBe(42);
+    });
+
+    it ("Should be possible to parse a chain of property and field accesses", function () {
+        var fn = parse("aKey['anotherKey'].aThirdKey['aFourthKey']");
+        expect(fn({aKey: {anotherKey: {aThirdKey: {aFourthKey: 42}}}})).toBe(42);
+    });
+
+    it ("Should be possible to parse function calls", function () {
+        var fn = parse('aFunction()');
+        expect(fn({aFunction: function() { return 42; }})).toBe(42);
+    });
+
+    it ("Should be possible to parse a function call with a single number argument", function () {
+        var fn = parse('aFunction(42)');
+        expect(fn({aFunction: function(n) { return n; }})).toBe(42);
+    });
+
+    it ("Should be possible to parse a function call with a single identifier argument", function () {
+        var fn = parse('aFunction(n)');
+        var scopeObj = {
+            n: 42,
+            aFunction: function (arg) {
+                return arg;
+            }
+        };
+        expect(fn(scopeObj)).toBe(42);
+    });
+
+    it ("Should be possible to parse a function call with a single function call argument", function () {
+        var fn = parse('aFunction(objFn())');
+        var scopeObj = {
+            objFn: _.constant(42),
+            aFunction: function (arg) {
+                return arg;
+            }
+        };
+        expect(fn(scopeObj)).toBe(42);
+    });
+
+    it ("Should be possible to parse a function call with multiple arguments", function () {
+        var fn = parse('aFunction(37, n, objFn())');
+        var scopeObj = {
+            n: 3,
+            objFn:_.constant(2),
+            aFunction: function (a1, a2, a3) {
+                return a1 + a2 + a3;
+            }
+        };
+        expect(fn(scopeObj)).toBe(42);
+    });
+
 });

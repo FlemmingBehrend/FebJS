@@ -77,7 +77,7 @@ Lexer.prototype.lex = function (text) {
             this.readNumber();
         } else if (this.is('\'"')) {
             this.readString(this.ch);
-        } else if (this.is('[],{}:')) {
+        } else if (this.is('[],{}:.()')) {
             this.tokens.push({
                 text: this.ch,
                 json: true
@@ -226,7 +226,7 @@ Parser.prototype.parse = function (text) {
 
 Parser.prototype.primary = function () {
     var primary;
-    if (this.expect('[')) { /* Array declaration */
+    if (this.expect('[')) {
         primary = this.arrayDeclaration();
     } else if (this.expect('{')) {
         primary = this.object();
@@ -238,8 +238,15 @@ Parser.prototype.primary = function () {
             primary.literal = true;
         }
     }
-    while (this.expect('[')) { /* Property access */
-        primary = this.objectIndex(primary);
+    var next;
+    while ((next = this.expect('[', '.', '('))) {
+        if (next.text === '[') {
+            primary = this.objectIndex(primary);
+        } else if (next.text === '.') {
+            primary = this.fieldAccess(primary);
+        } else if (next.text === '(') {
+            primary = this.functionCall(primary);
+        }
     }
     return primary;
 };
@@ -254,14 +261,33 @@ Parser.prototype.objectIndex = function (objFn) {
     };
 };
 
-Parser.prototype.expect = function (e) {
-    var token = this.peek(e);
-    if (token) {
-        return this.tokens.shift();
+Parser.prototype.fieldAccess = function (objFn) {
+    var getter = this.expect().fn;
+    return function(scope, locals) {
+        var obj = objFn(scope, locals);
+        return getter(obj);
+    };
+};
+
+Parser.prototype.functionCall = function (objFn) {
+    var argFns = [];
+    if (!this.peek(')')) {
+        do {
+            argFns.push(this.primary());
+        } while (this.expect(','));
     }
+    this.consume(')');
+    return function(scope, locals) {
+        var fn = objFn(scope, locals);
+        var args = _.map(argFns, function (argFn) {
+            return argFn(scope, locals);
+        });
+        return fn.apply(null, args);
+    };
 };
 
 Parser.prototype.arrayDeclaration = function () {
+    var elementFns = [];
     var elementFns = [];
     if (!this.peek(']')) {
         do {
@@ -311,11 +337,18 @@ Parser.prototype.consume = function (e) {
     }
 };
 
-Parser.prototype.peek = function (e) {
+Parser.prototype.peek = function (e1, e2, e3, e4) {
     if (this.tokens.length > 0) {
         var text = this.tokens[0].text;
-        if (text === e || !e) {
+        if (text === e1 || text === e2 || text === e3 || text === e4 || (!e1 && !e2 && !e3 && !e4)) {
             return this.tokens[0];
         }
+    }
+};
+
+Parser.prototype.expect = function (e1, e2, e3, e4) {
+    var token = this.peek(e1, e2, e3, e4);
+    if (token) {
+        return this.tokens.shift();
     }
 };
