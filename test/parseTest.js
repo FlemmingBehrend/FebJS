@@ -233,4 +233,29 @@ describe("Parse", function () {
         )).toBe(42);
     });
 
+    it ("Should be possible to parse simple string property access", function () {
+        var fn = parse("aKey['anotherKey']");
+        expect(fn({aKey: {anotherKey: 42}})).toBe(42);
+    });
+
+    it ("Should be possible to parse numeric array access", function () {
+        var fn = parse("anArray[1]");
+        expect(fn({anArray: [1,2,3]})).toBe(2);
+    });
+
+    it ("Should be possible to parse property access with another key as property", function () {
+        var fn = parse("lock[key]");
+        expect(fn({key: "theKey", lock: {theKey: 42}})).toBe(42);
+    });
+
+    it ("Should be possible to parse property access with another access as property", function () {
+        var fn = parse("lock[keys['aKey']]");
+        expect(fn({keys: {aKey: "theKey"}, lock: {theKey: 42}})).toBe(42);
+    });
+
+    it ("Should be possible to parse several field accesses back to back", function () {
+        var fn = parse("aKey['anotherKey']['aThirdKey']");
+        expect(fn({aKey: {anotherKey: {aThirdKey: 42}}})).toBe(42);
+    });
+
 });

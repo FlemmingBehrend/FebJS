@@ -226,7 +226,7 @@ Parser.prototype.parse = function (text) {
 
 Parser.prototype.primary = function () {
     var primary;
-    if (this.expect('[')) {
+    if (this.expect('[')) { /* Array declaration */
         primary = this.arrayDeclaration();
     } else if (this.expect('{')) {
         primary = this.object();
@@ -238,7 +238,20 @@ Parser.prototype.primary = function () {
             primary.literal = true;
         }
     }
+    while (this.expect('[')) { /* Property access */
+        primary = this.objectIndex(primary);
+    }
     return primary;
+};
+
+Parser.prototype.objectIndex = function (objFn) {
+    var indexFn = this.primary();
+    this.consume(']');
+    return function(scope, locals) {
+        var obj = objFn(scope, locals);
+        var index = indexFn(scope, locals);
+        return obj[index];
+    };
 };
 
 Parser.prototype.expect = function (e) {
