@@ -86,6 +86,11 @@ describe("Parse", function () {
         expect(fn()).toEqual("\u00A0");
     });
 
+    it ("Should parse a string with unicode escapes and other characters", function () {
+        var fn = parse('"123 \\u00A0 456"');
+        expect(fn()).toEqual('123 \u00a0 456');
+    });
+
     it ("Should not parse a string with invalid unicode escapes", function () {
         expect(function () {parse("'\\u00T0'");}).toThrow();
     });

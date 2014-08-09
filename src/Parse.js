@@ -187,7 +187,7 @@ Lexer.prototype.readString = function (quote) {
                     throw "Invalid unicode escape";
                 }
                 this.index += 4;
-                string = String.fromCharCode(parseInt(hex, 16));
+                string += String.fromCharCode(parseInt(hex, 16));
             } else {
                 var replacement = ESCAPES[ch];
                 if (replacement) {
