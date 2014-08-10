@@ -378,4 +378,34 @@ describe("Parse", function () {
         expect(fn(scopeObj)).toBeUndefined();
     });
 
+    it ("Should not allow accessing window as property", function () {
+        var fn = parse("anObject['wnd']");
+        expect(function () { fn({anObject: {wnd: window}}); }).toThrow();
+    });
+
+    it ("Should not be allowed to call a function on window", function () {
+        var fn = parse("wnd.scroll(500,0)");
+        expect(function (){ fn({wnd: window}); }).toThrow();
+    });
+
+    it ("Should not be allowed to call functions that return window", function () {
+        var fn = parse("getWnd()");
+        expect(function () { fn({getWnd: _.constant(window)}); }).toThrow();
+    });
+
+    it ("Should not be allowed to call functions on DOM elements", function () {
+        var fn = parse("e1.setAttribute('evil', 'true')");
+        expect(function () { fn({e1: document.documentElement}); }).toThrow();
+    });
+
+    it ("Should not be allowed to call an aliased function constructor", function () {
+        var fn = parse("fnConstructor('return window;')");
+        expect(function () { fn({fnConstructor: (function () {}).constructor}); }).toThrow();
+    });
+
+    it ("Should not be allowed to call functions on Object", function () {
+        var fn = parse("obj.create({})");
+        expect(function () { fn({obj: Object}); }).toThrow();
+    });
+
 });
