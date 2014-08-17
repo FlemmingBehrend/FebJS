@@ -408,4 +408,78 @@ describe("Parse", function () {
         expect(function () { fn({obj: Object}); }).toThrow();
     });
 
+    it ("Should not be allowed to call the method 'call'", function () {
+        var fn = parse("fun.call(obj)");
+        expect(function () {
+            fn({
+                fun: function() {},
+                obj: {}
+            })
+        }).toThrow();
+    });
+
+    it ("Should not be allowed to call the method 'apply'", function () {
+        var fn = parse("fun.apply(obj)");
+        expect(function () {
+            fn({
+                fun: function() {},
+                obj: {}
+            })
+        }).toThrow();
+    });
+
+    it ("Should not be allowed to call the method 'bind'", function () {
+        var fn = parse("fun.bind(obj)");
+        expect(function () {
+            fn({
+                fun: function() {},
+                obj: {}
+            })
+        }).toThrow();
+    });
+
+    it ("Should be possible to put an attribute on the scope", function () {
+        var fn = parse("anAttribute = 42");
+        var scope = {};
+        fn(scope);
+        expect(scope.anAttribute).toBe(42);
+    });
+
+    it ("Should be possible to assign an attribute through a function call on the scope", function () {
+        var fn = parse("anAttribute = aFunction()");
+        var scope = {
+            aFunction: _.constant(42)
+        };
+        fn(scope);
+        expect(scope.anAttribute).toBe(42);
+    });
+
+    it ("Should be possible to assign nested attributes on the scope", function () {
+        var fn = parse("anObject.anAttribute = 42");
+        var scope = {anObject: {}};
+        fn(scope);
+        expect(scope.anObject.anAttribute).toBe(42);
+    });
+
+    it ("Should craate nested object on the scope that does not exists", function () {
+        var fn = parse("a.b.c.d = 42");
+        var scope = {};
+        fn(scope);
+        expect(scope.a.b.c.d).toBe(42);
+    });
+
+    it ("Should create an assignment through attribute access", function() {
+        var fn = parse("anObject['anAttribute'] = 42");
+        var scope = {anObject: {}};
+        fn(scope);
+        expect(scope.anObject.anAttribute).toBe(42);
+    });
+
+    it ("Should parse assignment through field access after something else", function() {
+        var fn = parse("anObject['otherObject'].nested = 42");
+        var scope = {anObject: {otherObject: {}}};
+        fn(scope);
+        expect(scope.anObject.otherObject.nested).toBe(42);
+    });
+
 });

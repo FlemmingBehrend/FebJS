@@ -3,6 +3,9 @@
 
 var ESCAPES = {"n":"\n", "f":"\f", "r":"\r", "t":"\t", "v":"\v", "'":"'", "\"":"\""};
 var OPERATORS = {"null": _.constant(null), "true": _.constant(true), "false": _.constant(false)};
+var CALL = Function.prototype.call;
+var APPLY = Function.prototype.apply;
+var BIND = Function.prototype.bind;
 
 function parse(expr) {
     switch (typeof expr) {
@@ -16,6 +19,20 @@ function parse(expr) {
             return _.noop;
     }
 }
+
+var setter = function(object, path, value) {
+    var keys = path.split('.');
+    while (keys.length > 1) {
+        var key = keys.shift();
+        ensureSafeMemberName(key);
+        if (!object.hasOwnProperty(key)) {
+            object[key] = {};
+        }
+        object = object[key];
+    }
+    object[keys.shift()] = value;
+    return value;
+};
 
 var getterFn = _.memoize(function (ident) {
     var pathKeys = ident.split(".");
@@ -86,6 +103,17 @@ var ensureSafeObject = function (obj) {
     return obj;
 }
 
+var ensureSafeFunction = function(obj) {
+    if (obj) {
+        if (obj.constructor === obj) {
+            throw 'Referencing Function in Angular expressions is disallowed!';
+        } else if (obj === CALL || obj === APPLY || obj === BIND) {
+            throw 'Referencing call, apply, or bind in Angular expressions is disallowed!';
+        }
+    }
+    return obj;
+};
+
 function Lexer() {
 
 }
@@ -102,7 +130,7 @@ Lexer.prototype.lex = function (text) {
             this.readNumber();
         } else if (this.is('\'"')) {
             this.readString(this.ch);
-        } else if (this.is('[],{}:.()')) {
+        } else if (this.is('[],{}:.()=')) {
             this.tokens.push({
                 text: this.ch,
                 json: true
@@ -170,6 +198,9 @@ Lexer.prototype.readIdent = function () {
         token.json = true;
     } else {
         token.fn = getterFn(text);
+        token.fn.assign = function (self, value) {
+            return setter(self, text, value);
+        };
     }
     this.tokens.push(token);
 
@@ -277,7 +308,7 @@ function Parser(lexer) {
 
 Parser.prototype.parse = function (text) {
     this.tokens = this.lexer.lex(text);
-    return this.primary();
+    return this.assignment();
 };
 
 Parser.prototype.primary = function () {
@@ -314,19 +345,31 @@ Parser.prototype.primary = function () {
 Parser.prototype.objectIndex = function (objFn) {
     var indexFn = this.primary();
     this.consume(']');
-    return function(scope, locals) {
+    var objectIndexFn = function(scope, locals) {
         var obj = objFn(scope, locals);
         var index = indexFn(scope, locals);
         return ensureSafeObject(obj[index]);
-    };
+    }
+    objectIndexFn.assign = function (self, value, locals) {
+        var obj = ensureSafeObject(objFn(self, locals));
+        var index = indexFn(self, locals);
+        return (obj[index] = value);
+    }
+    return objectIndexFn;
 };
 
-Parser.prototype.fieldAccess = function (objFn) {
-    var getter = this.expect().fn;
-    return function(scope, locals) {
+Parser.prototype.fieldAccess = function(objFn) {
+    var token = this.expect();
+    var getter = token.fn;
+    var fieldAccessFn = function(scope, locals) {
         var obj = objFn(scope, locals);
         return getter(obj);
     };
+    fieldAccessFn.assign = function(self, value, locals) {
+        var obj = objFn(self, locals);
+        return setter(obj, token.text, value);
+    };
+    return fieldAccessFn;
 };
 
 Parser.prototype.functionCall = function (objFn, contextFn) {
@@ -339,7 +382,7 @@ Parser.prototype.functionCall = function (objFn, contextFn) {
     this.consume(')');
     return function(scope, locals) {
         var context = ensureSafeObject(contextFn ? contextFn(scope, locals) : scope);
-        var fn = ensureSafeObject(objFn(scope, locals));
+        var fn = ensureSafeFunction(objFn(scope, locals));
         var args = _.map(argFns, function (argFn) {
             return argFn(scope, locals);
         });
@@ -348,7 +391,6 @@ Parser.prototype.functionCall = function (objFn, contextFn) {
 };
 
 Parser.prototype.arrayDeclaration = function () {
-    var elementFns = [];
     var elementFns = [];
     if (!this.peek(']')) {
         do {
@@ -412,4 +454,18 @@ Parser.prototype.expect = function (e1, e2, e3, e4) {
     if (token) {
         return this.tokens.shift();
     }
+};
+
+Parser.prototype.assignment = function () {
+    var left = this.primary();
+    if (this.expect("=")) {
+        if (!left.assign){
+            throw 'Implies assignment but cannot be assigned to';
+        }
+        var right = this.primary();
+        return function (scope, locals) {
+            return left.assign(scope, right(scope, locals), locals);
+        };
+    }
+    return left;
 };
