@@ -101,7 +101,7 @@ var ensureSafeObject = function (obj) {
         }
     }
     return obj;
-}
+};
 
 var ensureSafeFunction = function(obj) {
     if (obj) {
@@ -349,12 +349,12 @@ Parser.prototype.objectIndex = function (objFn) {
         var obj = objFn(scope, locals);
         var index = indexFn(scope, locals);
         return ensureSafeObject(obj[index]);
-    }
+    };
     objectIndexFn.assign = function (self, value, locals) {
         var obj = ensureSafeObject(objFn(self, locals));
         var index = indexFn(self, locals);
         return (obj[index] = value);
-    }
+    };
     return objectIndexFn;
 };
 

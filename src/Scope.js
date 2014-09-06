@@ -136,7 +136,7 @@ Scope.prototype.$watchCollection = function (watchFn, listenerFn) {
 
 Scope.prototype.$watch = function (watchFn, listenerFn, valueEq) {
     var self = this;
-    watchFn = parse(watchFn)
+    watchFn = parse(watchFn);
     listenerFn = parse(listenerFn);
     var watcher = {
         watchFn: watchFn,
