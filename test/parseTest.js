@@ -534,4 +534,55 @@ describe("Parse", function () {
         expect(scope.b).toBe(1);
     });
 
+    it ("Should parse +", function () {
+        expect(parse('+42')()).toBe(42);
+        expect(parse('+a')({a:42})).toBe(42);
+    });
+
+    it ("Should parse !", function () {
+        expect(parse('!true')()).toBe(false);
+        expect(parse('!42')()).toBe(false);
+        expect(parse('!a')({a:false})).toBe(true);
+        expect(parse('!!a')({a:false})).toBe(false);
+    });
+
+    it ("Should parse negated value as constants if value is constant", function () {
+        expect(parse('!true').constant).toBe(true);
+        expect(parse('!!true').constant).toBe(true);
+        expect(parse('!a').constant).toBeFalsy();
+
+    });
+
+    it ("Should parse -", function () {
+        expect(parse('-42')()).toBe(-42);
+        expect(parse('-a')({a:-42})).toBe(42);
+        expect(parse('--a')({a:-42})).toBe(-42);
+    });
+
+    it ("Should parse numerically negated numbers as constant if needed", function () {
+        expect(parse('-42').constant).toBe(true);
+        expect(parse('-a').constant).toBeFalsy();
+    });
+
+    it ('fills missing value in unary - with zero', function() {
+        expect(parse('-a')()).toBe(0);
+    });
+
+    it ('parses a multiplication', function() {
+        expect(parse('21 * 2')()).toBe(42);
+    });
+
+    it ('parses a division', function() {
+        expect(parse('84 / 2')()).toBe(42);
+    });
+
+    it ('parses a remainder', function() {
+        expect(parse('85 % 43')()).toBe(42);
+    });
+
+    it ('parses several multiplicatives', function() {
+        expect(parse('36 * 2 % 5')()).toBe(2);
+    });
+
+
 });
