@@ -34,7 +34,32 @@ var OPERATORS = {
     },
     '%': function (self, locals, a, b) {
         return a(self, locals) % b(self, locals);
-    }
+    },
+    '<': function (self, locals, a, b) {
+        return a(self, locals) < b(self, locals);
+    },
+    '>': function (self, locals, a, b) {
+        return a(self, locals) > b(self, locals);
+    },
+    '<=': function (self, locals, a, b) {
+        return a(self, locals) <= b(self, locals);
+    },
+    '>=': function(self, locals, a, b) {
+        return a(self, locals) >= b(self, locals);
+    },
+    '==': function(self, locals, a, b) {
+        return a(self, locals) == b(self, locals);
+    },
+    '!=': function(self, locals, a, b) {
+        return a(self, locals) != b(self, locals);
+    },
+    '===': function(self, locals, a, b) {
+        return a(self, locals) === b(self, locals);
+    },
+    '!==': function(self, locals, a, b) {
+        return a(self, locals) !== b(self, locals);
+    },
+    '=': _.noop
 };
 var CALL = Function.prototype.call;
 var APPLY = Function.prototype.apply;
@@ -163,7 +188,7 @@ Lexer.prototype.lex = function (text) {
             this.readNumber();
         } else if (this.is('\'"')) {
             this.readString(this.ch);
-        } else if (this.is('[],{}:.()=')) {
+        } else if (this.is('[],{}:.()')) {
             this.tokens.push({
                 text: this.ch,
                 json: true
@@ -174,8 +199,24 @@ Lexer.prototype.lex = function (text) {
         } else if (this.isWhitespace(this.ch)) {
             this.index++;
         } else {
+            var ch2 = this.ch + this.peek();
+            var ch3 = this.ch + this.peek() + this.peek(2);
             var fn = OPERATORS[this.ch];
-            if (fn) {
+            var fn2 = OPERATORS[ch2];
+            var fn3 = OPERATORS[ch3];
+            if (fn3) {
+                this.tokens.push({
+                    text: ch3,
+                    fn: fn3
+                });
+                this.index += 3;
+            } else if (fn2) {
+                this.tokens.push({
+                    text: ch2,
+                    fn: fn2
+                });
+                this.index += 2;
+            } else if (fn) {
                 this.tokens.push({
                     text: this.ch,
                     fn: fn
@@ -333,11 +374,9 @@ Lexer.prototype.readNumber = function () {
     });
 };
 
-Lexer.prototype.peek = function () {
-    if (this.index < this.text.length-1) {
-        return this.text.charAt(this.index+1);
-    }
-    return false;
+Lexer.prototype.peek = function (n) {
+    n = n || 1;
+    return this.index + n < this.text.length ? this.text.charAt(this.index + n) : false;
 };
 
 Lexer.prototype.is = function (characters) {
@@ -502,12 +541,12 @@ Parser.prototype.expect = function (e1, e2, e3, e4) {
 };
 
 Parser.prototype.assignment = function () {
-    var left = this.additive();
+    var left = this.equality();
     if (this.expect("=")) {
         if (!left.assign){
             throw 'Implies assignment but cannot be assigned to';
         }
-        var right = this.additive();
+        var right = this.equality();
         return function (scope, locals) {
             return left.assign(scope, right(scope, locals), locals);
         };
@@ -560,3 +599,22 @@ Parser.prototype.additive = function () {
     }
     return left;
 };
+
+Parser.prototype.relational = function() {
+    var left = this.additive();
+    var operator;
+    while ((operator = this.expect('<', '>', '<=', '>='))) {
+        left = this.binaryFn(left, operator.fn, this.additive());
+    }
+    return left;
+};
+
+Parser.prototype.equality = function () {
+    var left = this.relational();
+    var operator;
+    while ((operator = this.expect('==', '!=', '===', '!=='))) {
+        left = this.binaryFn(left, operator.fn, this.relational());
+    }
+    return left;
+};
+
