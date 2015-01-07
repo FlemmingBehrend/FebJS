@@ -701,5 +701,21 @@ describe("Parse", function () {
         expect(parse('true ? 42 : a').constant).toBeFalsy();
     });
 
-    
+    it ('parses parentheses altering precedence order', function() {
+        expect(parse('21 * (3 - 1)')()).toBe(42);
+        expect(parse('false && (true || true)')()).toBe(false);
+        expect(parse('-((a % 2) === 0 ? 1 : 2)')({a: 42})).toBe(-1);
+    });
+
+    it ('parses several statements', function() {
+        var fn = parse('a = 1; b = 2; c = 3');
+        var scope = {};
+        fn(scope);
+        expect(scope).toEqual({a: 1, b: 2, c: 3});
+    });
+
+    it ('returns the value of the last statement', function() {
+        expect(parse('a = 1; b = 2; a + b')({})).toBe(3);
+    });
+
 });
