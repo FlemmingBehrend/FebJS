@@ -619,13 +619,25 @@ describe("Scope", function () {
             expect(scope.$eval("42")).toBe(42);
         });
 
-        it('Should accept expressions in $apply', function() {
+        it ('Should accept expressions in $apply', function() {
             expect(scope.$apply("42")).toBe(42);
         });
-        it('Should accept expressions in $evalAsync', function(done) {
+
+        it ('Should accept expressions in $evalAsync', function(done) {
             scope.$evalAsync("42");
             scope.$$postDigest(done);
         });
+
+        it ('accepts expressions for watch functions', function () {
+            var theValue;
+            scope.aValue = 42;
+            scope.$watch('aValue', function (newValue, oldValue, scope) {
+                theValue = newValue;
+            });
+            scope.$digest();
+            expect(theValue).toBe(42);
+        });
+
     });
 
     describe("inheritance", function() {
@@ -1583,4 +1595,5 @@ describe("Scope", function () {
             expect(listenerFn).toHaveBeenCalled();
         });
     });
+
 });

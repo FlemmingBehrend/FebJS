@@ -718,4 +718,13 @@ describe("Parse", function () {
         expect(parse('a = 1; b = 2; a + b')({})).toBe(3);
     });
 
+    it ('returns the function itself when given one', function () {
+        var fn = function () {};
+        expect(parse(fn)).toBe(fn);
+    });
+
+    it ('still returns a function when given no argument', function () {
+        expect(parse()).toEqual(jasmine.any(Function));
+    });
+
 });
