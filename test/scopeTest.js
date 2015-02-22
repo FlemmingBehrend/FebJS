@@ -8,6 +8,8 @@ describe("Scope", function () {
         expect(scope.aProperty).toBe(1);
     });
 
+
+
     describe("digest", function () {
 
         var scope;
@@ -480,7 +482,7 @@ describe("Scope", function () {
             );
 
         });
-        
+
         it ("Should be possible to execute a second $$postDigest, even if an exception is thrown in the first", function () {
             var didRun = false;
             scope.$$postDigest(
@@ -636,6 +638,35 @@ describe("Scope", function () {
             });
             scope.$digest();
             expect(theValue).toBe(42);
+        });
+
+        it('accepts expressions in $eval', function() {
+            expect(scope.$eval('42')).toBe(42);
+
+        });
+
+        it('accepts expressions in $apply', function () {
+            scope.aFunction = _.constant(42);
+            expect(scope.$apply('aFunction()')).toBe(42);
+        });
+
+        it('accepts expressions in $evalAsync', function (done) {
+            var called;
+            scope.aFunction = function () {
+                called = true;
+            };
+            scope.$evalAsync('aFunction()');
+            scope.$$postDigest(function () {
+                expect(called).toBe(true);
+                done();
+            });
+        });
+
+        it('removes constant watches after first invocation', function () {
+            scope.$watch('[1, 2, 3]', function () {
+            });
+            scope.$digest();
+            expect(scope.$$watchers.length).toBe(0);
         });
 
     });
@@ -1298,7 +1329,7 @@ describe("Scope", function () {
             scope.$digest();
             expect(oldValueGiven).toEqual({a:1, b:2});
         });
-        
+
         it ("Should use the newValue as the oldValue on first $digest", function () {
             scope.aValue = {a:1, b:2};
             var oldGivenValue;
@@ -1328,6 +1359,8 @@ describe("Scope", function () {
             scope.$watchCollection("[1,2,3]", "'one-two-three'");
             scope.$digest();
         });
+
+
     });
 
     describe("events", function () {
