@@ -621,7 +621,8 @@ describe("Parse", function () {
     });
 
     it ('parses equality operators', function() {
-        expect(parse('42 == 42')()).toBe(true);
+        var parse2 = parse('42 == 42');
+        expect(parse2()).toBe(true);
         expect(parse('42 == "42"')()).toBe(true);
         expect(parse('42 != 42')()).toBe(false);
         expect(parse('42 === 42')()).toBe(true);

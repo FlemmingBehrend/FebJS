@@ -2,10 +2,18 @@
 'use strict';
 
 var ESCAPES = {"n":"\n", "f":"\f", "r":"\r", "t":"\t", "v":"\v", "'":"'", "\"":"\""};
-var OPERATORS = {
+var CONSTANTS = {
     'null': _.constant(null),
     'true': _.constant(true),
-    'false': _.constant(false),
+    'false': _.constant(false)
+};
+
+_.forEach(CONSTANTS, function(fn, constantName) {
+        fn.constant = fn.literal = true;
+    }
+);
+
+var OPERATORS = {
     '=': _.noop,
     '+': function (self, locals, a, b) {
         a = a(self, locals);
@@ -76,9 +84,18 @@ function parse(expr) {
         case 'string':
             var lexer = new Lexer();
             var parser = new Parser(lexer);
+            var oneTime = false;
+
+            if (expr.charAt(0) === ':' && expr.charAt(1) === ':') {
+                oneTime = true;
+                expr = expr.substring(2);
+            }
             var parseFn = parser.parse(expr);
             if (parseFn.constant) {
                 parseFn.$$watchDelegate = constantWatchDelegate;
+            } else if (oneTime) {
+                parseFn = wrapSharedExpression(parseFn);
+                parseFn.$$watchDelegate = oneTimeWatchDelegate;
             }
             return parseFn;
         case 'function':
@@ -86,6 +103,19 @@ function parse(expr) {
         default:
             return _.noop;
     }
+}
+
+function wrapSharedExpression(parseFn) {
+    var wrapped = parseFn;
+    if (wrapped.sharredGetter) {
+        wrapped = function (self, locals) {
+            return parseFn(self, locals);
+        };
+        wrapped.constant = parseFn.constant;
+        wrapped.literal = parseFn.literal;
+        wrapped.assign = parseFn.assign;
+    }
+    return wrapped;
 }
 
 function constantWatchDelegate(scope, listenerFn, valueEq, watchFn) {
@@ -100,6 +130,22 @@ function constantWatchDelegate(scope, listenerFn, valueEq, watchFn) {
             unwatch();
         },
         valueEq);
+    return unwatch;
+}
+
+function oneTimeWatchDelegate(scope, listenerFn, valueEq, watchFn) {
+    var unwatch = scope.$watch(
+        function () {
+            return watchFn(scope);
+        },
+        function (newValue, oldValue, scope) {
+            if (_.isFunction(listenerFn)) {
+                listenerFn.apply(this, arguments);
+            }
+            unwatch();
+        },
+        valueEq
+    );
     return unwatch;
 }
 
@@ -119,13 +165,18 @@ var setter = function(object, path, value) {
 
 var getterFn = _.memoize(function (ident) {
     var pathKeys = ident.split(".");
+    var fn;
     if (pathKeys.length === 1) {
-        return simpleGetterFn1(pathKeys[0]);
+        fn = simpleGetterFn1(pathKeys[0]);
     } else if (pathKeys.length === 2) {
-        return simpleGetterFn2(pathKeys[0], pathKeys[1]);
+        fn = simpleGetterFn2(pathKeys[0], pathKeys[1]);
     } else {
-        return generatedGetterFn(pathKeys);
+        fn = generatedGetterFn(pathKeys);
     }
+    fn.assign = function (self, value) {
+        return setter(self, ident, value);
+    };
+    return fn;
 });
 
 var simpleGetterFn1 = function(key) {
@@ -215,15 +266,15 @@ Lexer.prototype.lex = function (text) {
             this.readString(this.ch);
         } else if (this.is('[],{}:.()?;')) {
             this.tokens.push({
-                text: this.ch,
-                json: true
+                text: this.ch
             });
             this.index++;
         } else if (this.isIdent(this.ch)) {
-            this.readIdent();
+            this.readIdent(this.ch);
         } else if (this.isWhitespace(this.ch)) {
             this.index++;
         } else {
+
             var ch2 = this.ch + this.peek();
             var ch3 = this.ch + this.peek() + this.peek(2);
             var fn = OPERATORS[this.ch];
@@ -300,27 +351,20 @@ Lexer.prototype.readIdent = function () {
         }
     }
 
-    var token = {text: text};
-    if (OPERATORS.hasOwnProperty(text)) {
-        token.fn = OPERATORS[text];
-        token.json = true;
-    } else {
-        token.fn = getterFn(text);
-        token.fn.assign = function (self, value) {
-            return setter(self, text, value);
-        };
-    }
+    var token = {
+        text: text,
+        fn: CONSTANTS[text] || getterFn(text)
+    };
+
     this.tokens.push(token);
 
     if (methodName) {
         this.tokens.push({
-            text: '.',
-            json: false
+            text: '.'
         });
         this.tokens.push({
             text: methodName,
-            fn: getterFn(methodName),
-            json: false
+            fn: getterFn(methodName)
         });
     }
 
@@ -356,7 +400,7 @@ Lexer.prototype.readString = function (quote) {
             this.tokens.push({
                 text: rawString,
                 string: string,
-                json: true,
+                constant: true,
                 fn: _.constant(string)
             });
             return;
@@ -394,8 +438,8 @@ Lexer.prototype.readNumber = function () {
     number = 1 * number;
     this.tokens.push({
         text: number,
-        fn: _.constant(number),
-        json: true
+        constant: true,
+        fn: _.constant(number)
     });
 };
 
@@ -431,7 +475,7 @@ Parser.prototype.primary = function () {
     } else {
         var token = this.expect();
         primary = token.fn;
-        if (token.json) {
+        if (token.constant) {
             primary.constant = true;
             primary.literal = true;
         }
@@ -543,6 +587,7 @@ Parser.prototype.object = function () {
     };
     objectFn.literal = true;
     objectFn.constant = _(keyValues).pluck('value').every('constant');
+
     return objectFn;
 };
 
@@ -683,7 +728,8 @@ Parser.prototype.ternary = function () {
 Parser.prototype.statements = function () {
     var statements = [];
     do {
-        statements.push(this.assignment());
+        var assignment = this.assignment();
+        statements.push(assignment);
     } while (this.expect(';'));
     if (statements.length === 1) {
         return statements[0];

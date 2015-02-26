@@ -630,7 +630,7 @@ describe("Scope", function () {
             scope.$$postDigest(done);
         });
 
-        it ('accepts expressions for watch functions', function () {
+        it ('Should accept expressions for watch functions', function () {
             var theValue;
             scope.aValue = 42;
             scope.$watch('aValue', function (newValue, oldValue, scope) {
@@ -640,17 +640,17 @@ describe("Scope", function () {
             expect(theValue).toBe(42);
         });
 
-        it('accepts expressions in $eval', function() {
+        it ('Should accept expressions in $eval', function() {
             expect(scope.$eval('42')).toBe(42);
 
         });
 
-        it('accepts expressions in $apply', function () {
+        it ('Should accept expressions in $apply', function () {
             scope.aFunction = _.constant(42);
             expect(scope.$apply('aFunction()')).toBe(42);
         });
 
-        it('accepts expressions in $evalAsync', function (done) {
+        it ('Should accept expressions in $evalAsync', function (done) {
             var called;
             scope.aFunction = function () {
                 called = true;
@@ -662,11 +662,36 @@ describe("Scope", function () {
             });
         });
 
-        it('removes constant watches after first invocation', function () {
+        it ('Should remove constant watches after first invocation', function () {
             scope.$watch('[1, 2, 3]', function () {
             });
             scope.$digest();
             expect(scope.$$watchers.length).toBe(0);
+        });
+
+        it ('Should accept one-time watches', function () {
+            var theValue;
+            scope.aValue = 42;
+            scope.$watch('::aValue', function (newValue, oldValue, scope) {
+                theValue = newValue;
+            });
+            scope.$digest();
+            expect(theValue).toBe(42);
+        });
+
+        it ('Should remove one-time watchers after first invocation', function () {
+            scope.aValue = 42;
+            scope.$watch('::aValue', function () {});
+            scope.$digest();
+            expect(scope.$$watchers.length).toBe(0);
+        });
+
+        it ('Should not contaminate other expressions with one-time watches', function () {
+            scope.aValue = 42;
+            scope.$watch('::aValue', function () {});
+            scope.$watch('aValue', function () {});
+            scope.$digest();
+            //expect(scope.$$watchers.length).toBe(1);
         });
 
     });
