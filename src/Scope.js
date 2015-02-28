@@ -67,6 +67,7 @@ Scope.prototype.$watchCollection = function (watchFn, listenerFn) {
             if (_.isArrayLike(newValue)) {
                 if (!_.isArray(oldValue)) {
                     changeCounter++;
+
                     oldValue = [];
                 }
                 if (newValue.length !== oldValue.length) {
@@ -326,7 +327,7 @@ Scope.prototype.$$digestOnce = function () {
                     }
                 }
             } catch (e) {
-                console.log(e);
+                console.error(e);
             }
         });
         return continueLoop;

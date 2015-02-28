@@ -691,8 +691,53 @@ describe("Scope", function () {
             scope.$watch('::aValue', function () {});
             scope.$watch('aValue', function () {});
             scope.$digest();
-            //expect(scope.$$watchers.length).toBe(1);
+            expect(scope.$$watchers.length).toBe(1);
         });
+
+        it ('does not remove one-time-watches until value is defined', function () {
+            scope.$watch('::aValue', function () {});
+            scope.$digest();
+            expect(scope.$$watchers.length).toBe(1);
+            scope.aValue = 42;
+            scope.$digest();
+            expect(scope.$$watchers.length).toBe(0);
+        });
+
+        it ('Should not remove one-time bindings before that stay defined', function () {
+            scope.aValue = 42;
+            scope.$watch('::aValue', function () {});
+
+            var unwatchDeleter = scope.$watch('aValue', function () {
+                delete scope.aValue;
+            });
+
+            scope.$digest();
+            expect(scope.$$watchers.length).toBe(2);
+
+            scope.aValue = 42;
+            unwatchDeleter();
+            scope.$digest();
+            expect(scope.$$watchers.length).toBe(0);
+        });
+
+        it ('Should not remove one-time watches before all array items are defined', function () {
+            scope.$watch('::[1, 2, aValue]', function () {}, true);
+            scope.$digest();
+            expect(scope.$$watchers.length).toBe(1);
+            scope.aValue = 3;
+            scope.$digest();
+            expect(scope.$$watchers.length).toBe(0);
+        });
+
+        it ('Should not remove one-time watches before all object values are defined', function () {
+            scope.$watch('::{a: 1, b: aValue}', function () {}, true);
+            scope.$digest();
+            expect(scope.$$watchers.length).toBe(1);
+            scope.aValue = 3;
+            scope.$digest();
+            excect(scope.$$watchers.length).toBe(0);
+        });
+
 
     });
 
