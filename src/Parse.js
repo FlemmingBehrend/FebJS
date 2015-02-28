@@ -97,6 +97,8 @@ function parse(expr) {
             } else if (oneTime) {
                 parseFn = wrapSharedExpression(parseFn);
                 parseFn.$$watchDelegate = parseFn.literal ? oneTimeLiteralWatchDelegate : oneTimeWatchDelegate;
+            } else if (parseFn.inputs) {
+                parseFn.$$watchDelegate = inputsWatchDelegate;
             }
             return parseFn;
         case 'function':
@@ -120,8 +122,27 @@ function wrapSharedExpression(exprFn) {
 }
 
 function oneTimeLiteralWatchDelegate(scope, listenerFn, valueEq, watchFn) {
-
-
+    function isAllDefined(val) {
+        return !_.any(val, _.isUndefined);
+    }
+    var unwatch =
+        scope.$watch(function () {
+            return watchFn(scope);
+        }, function (newValue, oldValue, scope) {
+            if (_.isFunction(listenerFn)) {
+                listenerFn.apply(this, arguments);
+            }
+            if (isAllDefined(newValue)) {
+                scope.$$postDigest(function () {
+                    if (isAllDefined(newValue)) {
+                        unwatch();
+                    }
+                });
+            }
+        },
+        valueEq
+    );
+    return unwatch;
 }
 
 function constantWatchDelegate(scope, listenerFn, valueEq, watchFn) {
@@ -161,6 +182,47 @@ function oneTimeWatchDelegate(scope, listenerFn, valueEq, watchFn) {
         valueEq
     );
     return unwatch;
+}
+
+function inputsWatchDelegate(scope, listenerFn, valueEq, watchFn) {
+    if (!watchFn.$$inputs) {
+        watchFn.$$inputs = collectExpressionInputs(watchFn.inputs, []);
+    }
+    var inputExpressions = watchFn.$$inputs;
+    var oldValues = _.times(inputExpressions.length, _.constant(function () {}));
+    var lastResult;
+    return scope.$watch(function () {
+        var changed = false;
+        _.forEach(inputExpressions, function (inputExpr, i) {
+            var newValue = inputExpr(scope);
+            if (changed || !expressionInputDirtyCheck(newValue, oldValues[i])) {
+                changed = true;
+                oldValues[i] = newValue;
+            }
+        });
+        if (changed) {
+            lastResult = watchFn(scope);
+        }
+        return lastResult;
+    }, listenerFn, valueEq);
+}
+
+function collectExpressionInputs(inputs, results) {
+    _.forEach(inputs, function (input) {
+        if (!input.constant) {
+            if (input.inputs) {
+                collectExpressionInputs(input.inputs, results);
+            } else if (results.indexOf(input) === -1) {
+                results.push(input);
+            }
+        }
+    });
+    return results;
+}
+
+function expressionInputDirtyCheck(newValue, oldValue) {
+    return newValue === oldValue ||
+        (typeof newValue === 'number' && typeof oldValue === 'number' && isNaN(newValue) && isNaN(oldValue));
 }
 
 var setter = function(object, path, value) {
@@ -582,6 +644,7 @@ Parser.prototype.arrayDeclaration = function () {
     };
     arrayFn.literal = true;
     arrayFn.constant = _.every(elementFns, 'constant');
+    arrayFn.inputs = elementFns;
     return arrayFn;
 };
 
@@ -605,7 +668,7 @@ Parser.prototype.object = function () {
     };
     objectFn.literal = true;
     objectFn.constant = _(keyValues).pluck('value').every('constant');
-
+    objectFn.inputs = _.pluck(keyValues, 'value');
     return objectFn;
 };
 
@@ -638,9 +701,11 @@ Parser.prototype.assignment = function () {
             throw 'Implies assignment but cannot be assigned to';
         }
         var right = this.ternary();
-        return function (scope, locals) {
+        var assignmentFn = function (scope, locals) {
             return left.assign(scope, right(scope, locals), locals);
         };
+        assignmentFn.inputs = [left, right];
+        return assignmentFn;
     }
     return left;
 };
@@ -656,6 +721,7 @@ Parser.prototype.unary = function () {
         var unaryFn = function (self, locals) {
             return operator.fn(self, locals, operand);
         };
+        unaryFn.inputs = [operand];
         unaryFn.constant = operand.constant;
         return unaryFn;
     } else if ((operator = this.expect('-'))) {
@@ -674,11 +740,12 @@ Parser.prototype.multiplicative = function () {
     return left;
 };
 
-Parser.prototype.binaryFn = function(left, op, right) {
+Parser.prototype.binaryFn = function(left, op, right, shortCircuiting) {
     var fn = function(self, locals) {
         return op(self, locals, left, right);
     };
     fn.constant = left.constant && right.constant;
+    fn.inputs = !shortCircuiting && [left, right];
     return fn;
 };
 
@@ -713,7 +780,7 @@ Parser.prototype.logicalAND = function () {
     var left = this.equality();
     var operator;
     while ((operator = this.expect('&&'))) {
-        left = this.binaryFn(left, operator.fn, this.equality());
+        left = this.binaryFn(left, operator.fn, this.equality(), true);
     }
     return left;
 };
@@ -722,7 +789,7 @@ Parser.prototype.logicalOR = function () {
     var left = this.logicalAND();
     var operator;
     while ((operator = this.expect('||'))) {
-        left = this.binaryFn(left, operator.fn, this.logicalAND());
+        left = this.binaryFn(left, operator.fn, this.logicalAND(), true);
     }
     return left;
 };
