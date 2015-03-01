@@ -85,13 +85,11 @@ function parse(expr) {
             var lexer = new Lexer();
             var parser = new Parser(lexer);
             var oneTime = false;
-
             if (expr.charAt(0) === ':' && expr.charAt(1) === ':') {
                 oneTime = true;
                 expr = expr.substring(2);
             }
             var parseFn = parser.parse(expr);
-            console.log(parseFn);
             if (parseFn.constant) {
                 parseFn.$$watchDelegate = constantWatchDelegate;
             } else if (oneTime) {
