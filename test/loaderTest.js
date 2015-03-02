@@ -55,5 +55,24 @@ describe('setupModuleloader', function () {
             expect(myModule.requires).toEqual(['myOtherModule']);
         });
 
+        it ('Should allow getting a module', function () {
+            var myModule = window.angular.module('myModule', []);
+            var gotModule = window.angular.module('myModule');
+            expect(gotModule).toBeDefined();
+            expect(gotModule).toBe(myModule);
+        });
+
+        it ('Should throw an exception when trying to get a non-existing module', function () {
+            expect(function () {
+                window.angular.module('myModule');
+            }).toThrow();
+        });
+
+        it ('Should not allow a module to be called hasOwnProperty', function () {
+            expect(function () {
+                window.angular.module('hasOwnProperty', []);
+            }).toThrow();
+        });
+
     });
 });
