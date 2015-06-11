@@ -1472,13 +1472,6 @@ describe("Scope", function () {
             expect(theValue).toEqual([1,2,3]);
         });
 
-        it ("Should accept expressions for listener functions", function () {
-            var theValue;
-            scope.$watchCollection("[1,2,3]", "'one-two-three'");
-            scope.$digest();
-        });
-
-
     });
 
     describe("events", function () {
