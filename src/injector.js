@@ -8,16 +8,12 @@ function createInjector(modulesToLoad) {
 
     var $provide = {
         constant: function (key, value) {
+            if (key === 'hasOwnProperty') {
+                throw 'hasOwnProperty is not a valid constant name!';
+            }
             cache[key] = value;
         }    
     };
-
-    function invoke(fn) {
-        var args = _.map(fn.$inject, function (token) {
-            return cache[token];
-        });
-        return fn.apply(null, args);
-    }
 
     _.forEach(modulesToLoad, function loadModule(moduleName) {
         if (!loadedModules.hasOwnProperty(moduleName)) {
@@ -38,7 +34,6 @@ function createInjector(modulesToLoad) {
         },
         get: function (key) {
             return cache[key];
-        },
-        invoke: invoke
+        }
     };
 }
