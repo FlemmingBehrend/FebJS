@@ -1,5 +1,7 @@
 module.exports = function(config) {
     var path = require('path');
+    var darwinPath = path.join(__dirname, 'phantomjs/phantomjs');
+    console.log(darwinPath);
 
     config.set({
         basePath: '',
@@ -17,10 +19,11 @@ module.exports = function(config) {
         colors: true,
         logLevel: config.LOG_INFO,
         autoWatch: true,
-        browsers: ['PhantomJS'],
+        browsers: ['Chrome'],
         phantomjsLauncher: {
             cmd: {
-              win32: path.join(__dirname, 'phantomjs/phantomjs.exe')
+                darwin: path.join(__dirname, 'phantomjs/phantomjs'),
+                win32: path.join(__dirname, 'phantomjs/phantomjs.exe')
             }
         },
         singleRun: false
