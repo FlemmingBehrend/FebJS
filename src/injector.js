@@ -16,12 +16,16 @@ function createInjector(modulesToLoad) {
     };
 
 
-    function invoke(fn) {
+    function invoke(fn, self) {
         console.log(cache);
         var args = _.map(fn.$inject, function(token) {
-            return cache[token];
+            if (_.isString(token)) {
+                return cache[token];
+            } else {
+                throw 'Incorrect injection token! Expected a string, got '+token;
+            }
         });
-        return fn.apply(null, args);
+        return fn.apply(self, args);
     }
 
     _.forEach(modulesToLoad, function loadModule(moduleName) {
