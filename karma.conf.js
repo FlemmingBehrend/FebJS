@@ -20,12 +20,6 @@ module.exports = function(config) {
         logLevel: config.LOG_INFO,
         autoWatch: true,
         browsers: ['Chrome'],
-        phantomjsLauncher: {
-            cmd: {
-                darwin: path.join(__dirname, 'phantomjs/phantomjs'),
-                win32: path.join(__dirname, 'phantomjs/phantomjs.exe')
-            }
-        },
         singleRun: false
     });
 };
