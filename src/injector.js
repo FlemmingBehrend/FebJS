@@ -3,6 +3,10 @@
 "use strict";
 
 function createInjector(modulesToLoad) {
+
+    var FN_ARGS = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
+    var FN_ARG = /^\s*(_?)(\S+?)\1\s*$/;
+    var STRIP_COMMENTS = /(\/\/.*$)|(\/\*.*?\*\/)/mg;
     var cache = {};
     var loadedModules = {};
 
@@ -15,6 +19,22 @@ function createInjector(modulesToLoad) {
         }    
     };
 
+    function annotate(fn) {
+        if (_.isArray(fn)) {
+            return fn.slice(0, fn.length - 1);
+        } else if (fn.$inject) {
+            return fn.$inject;
+        } else if (!fn.length) {
+            return [];
+        } else {
+            var source = fn.toString().replace(STRIP_COMMENTS, '');
+            var argDeclaration = source.match(FN_ARGS);
+            var map = _.map(argDeclaration[1].split(','), function (argName) {
+                return argName.match(FN_ARG)[2];
+            });
+            return map;
+        }
+    }
 
     function invoke(fn, self, locals) {
         console.log(cache);
@@ -48,6 +68,7 @@ function createInjector(modulesToLoad) {
         get: function (key) {
             return cache[key];
         },
-        invoke: invoke
+        invoke: invoke,
+        annotate: annotate
     };
 }

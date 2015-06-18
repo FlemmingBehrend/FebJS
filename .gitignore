@@ -3,3 +3,4 @@ node_modules
 *.iml
 .npmrc
 *.pdf
+src/injector.js
