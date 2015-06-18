@@ -2,13 +2,14 @@
 /* global angular: false */
 "use strict";
 
-function createInjector(modulesToLoad) {
+function createInjector(modulesToLoad, strictDI) {
 
     var FN_ARGS = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
     var FN_ARG = /^\s*(_?)(\S+?)\1\s*$/;
     var STRIP_COMMENTS = /(\/\/.*$)|(\/\*.*?\*\/)/mg;
     var cache = {};
     var loadedModules = {};
+    strictDI = (strictDI === true);
 
     var $provide = {
         constant: function (key, value) {
@@ -27,6 +28,9 @@ function createInjector(modulesToLoad) {
         } else if (!fn.length) {
             return [];
         } else {
+            if (strictDI) {
+                throw 'fn is not using explicit annotation and cannot be invoked in strict mode';
+            }
             var source = fn.toString().replace(STRIP_COMMENTS, '');
             var argDeclaration = source.match(FN_ARGS);
             var map = _.map(argDeclaration[1].split(','), function (argName) {
@@ -38,13 +42,16 @@ function createInjector(modulesToLoad) {
 
     function invoke(fn, self, locals) {
         console.log(cache);
-        var args = _.map(fn.$inject, function(token) {
+        var args = _.map(annotate(fn), function(token) {
             if (_.isString(token)) {
                 return locals && locals.hasOwnProperty(token) ? locals[token] : cache[token];
             } else {
                 throw 'Incorrect injection token! Expected a string, got '+token;
             }
         });
+        if (_.isArray(fn)) {
+            fn = _.last(fn);
+        }
         return fn.apply(self, args);
     }
 
