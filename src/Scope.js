@@ -327,7 +327,7 @@ Scope.prototype.$$digestOnce = function () {
                     }
                 }
             } catch (e) {
-                console.error(e);
+                console.log(e);
             }
         });
         return continueLoop;

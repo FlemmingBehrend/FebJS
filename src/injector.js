@@ -17,7 +17,10 @@ function createInjector(modulesToLoad, strictDI) {
                 throw 'hasOwnProperty is not a valid constant name!';
             }
             cache[key] = value;
-        }    
+        },
+        provider: function (key, provider) {
+            cache[key] = provider.$get();
+        }
     };
 
     function annotate(fn) {
@@ -41,7 +44,6 @@ function createInjector(modulesToLoad, strictDI) {
     }
 
     function invoke(fn, self, locals) {
-        console.log(cache);
         var args = _.map(annotate(fn), function(token) {
             if (_.isString(token)) {
                 return locals && locals.hasOwnProperty(token) ? locals[token] : cache[token];
