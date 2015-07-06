@@ -9,8 +9,7 @@ module.exports = function(config) {
         files: [
             'node_modules/lodash/lodash.js',
             'node_modules/jquery/dist/jquery.js',
-            'src/*.js',
-            'test/*.js'
+            'src/*.js'
         ],
         exclude: [],
         preprocessors: {},
