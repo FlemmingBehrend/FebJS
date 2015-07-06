@@ -19,7 +19,7 @@ function createInjector(modulesToLoad, strictDI) {
             cache[key] = value;
         },
         provider: function (key, provider) {
-            cache[key] = invoke(provider.$get(), provider);
+            cache[key] = invoke(provider.$get, provider);
         }
     };
 

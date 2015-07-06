@@ -173,7 +173,7 @@ Scope.prototype.$digest = function () {
                 var asyncTask = this.$$asyncQueue.shift();
                 asyncTask.scope.$eval(asyncTask.expression);
             } catch (e) {
-                console.error("$digest: " + e);
+                //console.error("$digest: " + e);
             }
         }
         dirty = this.$$digestOnce();
@@ -187,7 +187,7 @@ Scope.prototype.$digest = function () {
         try {
             this.$$postDigestQueue.shift()();
         } catch (e) {
-            console.error("$digest: " +  e);
+            //console.error("$digest: " +  e);
         }
     }
 };
@@ -294,7 +294,7 @@ Scope.prototype.$$fireEventOnScope = function (eventName, listenerArgs) {
             try {
                 listeners[i].apply(null, listenerArgs);
             } catch (e) {
-                console.error(e);
+                //console.error(e);
             }
             i++;
         }
@@ -327,7 +327,7 @@ Scope.prototype.$$digestOnce = function () {
                     }
                 }
             } catch (e) {
-                console.error(e);
+                //console.error(e);
             }
         });
         return continueLoop;
