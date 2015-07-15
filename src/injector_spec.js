@@ -337,6 +337,29 @@ describe('injector', function () {
             }).toThrow('Failing Instantiation');
         });
 
+        it('instantiates a provider is given as a constructor function', function () {
+            var module = angular.module('myModule', []);
+            module.provider('a', function AProvider() {
+                this.$get = function () {
+                    return 42;
+                };
+            });
+            var injector = createInjector(['myModule']);
+            expect(injector.get('a')).toBe(42);
+        });
+
+        it('injects the given provider constructor function', function () {
+            var module = angular.module('myModule', []);
+            module.constant('b', 2);
+            module.provider('a', function AProvider(b) {
+                this.$get = function () {
+                    return 1 + b;
+                };
+            });
+            var injector = createInjector(['myModule']);
+            expect(injector.get('a')).toBe(3);
+        });
+
     });
 
 });

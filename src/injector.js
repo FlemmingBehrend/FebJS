@@ -23,6 +23,9 @@ function createInjector(modulesToLoad, strictDI) {
             instanceCache[key] = value;
         },
         provider: function (key, provider) {
+            if (_.isFunction(provider)) {
+                provider = instantiate(provider);
+            }
             providerCache[key + 'Provider'] = provider;
         }
     };
@@ -74,7 +77,7 @@ function createInjector(modulesToLoad, strictDI) {
             if (_.isString(token)) {
                 return locals && locals.hasOwnProperty(token) ? locals[token] : getService(token);
             } else {
-                throw 'Incorrect injection token! Expected a string, got '+token;
+                throw 'Incorrect injection token! Expected a string, got ' + token;
             }
         });
         if (_.isArray(fn)) {
