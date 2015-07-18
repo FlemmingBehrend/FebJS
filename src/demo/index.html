@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Feb.js</title>
+</head>
+<body>
+    <h1>Feb.js demo application</h1>
+    <h2>Parse test: </h2>
+    <script src="./../../node_modules/jquery/dist/jquery.js"></script>
+    <script src="./../../node_modules/lodash/lodash.js"></script>
+    <script src="./../angular.js"></script>
+    <script src="./../injector.js"></script>
+    <script src="./../loader.js"></script>
+    <script src="./../parse.js"></script>
+    <script src="./../scope.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            console.log('Document ready');
+            setupModuleLoader(window);
+            var module = angular.module('demo', []);
+            module.constant('c', 12);
+            var injector = createInjector(['demo'], true);
+            console.log(injector.get('c'));
+            console.log('Bootstrap finished!');
+        });
+    </script>
+</body>
+</html>
