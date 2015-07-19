@@ -6,7 +6,7 @@
 </head>
 <body>
     <h1>Feb.js demo application</h1>
-    <h2>Parse test: </h2>
+    <h2>Parse test: {{value}}</h2>
     <script src="./../../node_modules/jquery/dist/jquery.js"></script>
     <script src="./../../node_modules/lodash/lodash.js"></script>
     <script src="./../angular.js"></script>
@@ -17,12 +17,28 @@
     <script type="text/javascript">
         $(document).ready(function () {
             console.log('Document ready');
+            console.log(window ? window : 'Error creating window object');
             setupModuleLoader(window);
-            var module = angular.module('demo', []);
+            var scope = new Scope();
+            console.log(scope ? scope : 'Error creating RootScope');
+            var module = angular.module('febjs.demo', []);
             module.constant('c', 12);
-            var injector = createInjector(['demo'], true);
-            console.log(injector.get('c'));
+            module.provider('scope', function ScopeProvider() {
+                this.$get = function () {
+                    return new Scope();
+                };
+            });
+            module.provider('MyController', function MyControllerProvider() {
+                this.$get = function (scope, c) {
+                    console.log(scope);
+                    scope.value = c;
+                };
+            });
+            var injector = createInjector(['febjs.demo']);
             console.log('Bootstrap finished!');
+            var myController = injector.get('MyController');
+            console.log(myController);
+
         });
     </script>
 </body>
