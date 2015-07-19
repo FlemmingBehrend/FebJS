@@ -22,7 +22,7 @@ function createInjector(modulesToLoad, strictDI) {
 
     strictDI = (strictDI === true);
 
-    var $provide = {
+    providerCache.$provide = {
         constant: function (key, value) {
             if (key === 'hasOwnProperty') {
                 throw 'hasOwnProperty is not a valid constant name!';
@@ -39,7 +39,6 @@ function createInjector(modulesToLoad, strictDI) {
     };
 
     function createInternalInjector(cache, factoryFn) {
-
 
         function invoke(fn, self, locals) {
             var args = _.map(annotate(fn), function(token) {
@@ -122,7 +121,8 @@ function createInjector(modulesToLoad, strictDI) {
             _.forEach(module._invokeQueue, function (invokeArgs) {
                 var method = invokeArgs[0];
                 var args = invokeArgs[1];
-                $provide[method].apply($provide, args);
+                var provide = providerCache.$provide;
+                provide[method].apply(provide, args);
             });
         }
     });
