@@ -531,6 +531,40 @@ describe('injector', function () {
             expect(injector.get('a')).toBe(42);
         });
 
+        it('runs run blocks when the injector is created', function() {
+            var module = angular.module('myModule', []);
+            var hasRun = false; module.run(
+                function() {
+                    hasRun = true;
+                });
+            createInjector(['myModule']);
+            expect(hasRun).toBe(true);
+        });
+
+        it('injects run blocks with the instance injector', function () {
+            var module = angular.module('myModule', []);
+            module.provider('a', {$get: _.constant(42)});
+            var gotA = null;
+            module.run(function (a) {
+                gotA = a;
+            });
+            createInjector(['myModule']);
+            expect(gotA).toBe(42);
+        });
+
+        it('configures all modules before running any run blocks', function () {
+            var module1 = angular.module('module1', []);
+            module1.provider('a', {$get: _.constant(1)});
+            var result = null;
+            module1.run(function (a, b) {
+                result = a + b;
+            });
+            var module2 = angular.module('module2', []);
+            module2.provider('b', {$get: _.constant(2)});
+            createInjector(['module1', 'module2']);
+            expect(result).toBe(3);
+        });
+
     });
 
 });
