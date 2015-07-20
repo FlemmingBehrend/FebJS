@@ -35,8 +35,21 @@ function createInjector(modulesToLoad, strictDI) {
                 provider = providerInjector.instantiate(provider);
             }
             providerCache[key + 'Provider'] = provider;
+        },
+        factory: function (key, factoryFn) {
+            this.provider(key, {$get: enforceReturnValue(factoryFn)});
         }
     };
+
+    function enforceReturnValue(factoryFn) {
+        return function () {
+            var value = instanceInjector.invoke(factoryFn);
+            if (_.isUndefined(value)) {
+                throw 'factory must return a value';
+            }
+            return value;
+        };
+    }
 
     function createInternalInjector(cache, factoryFn) {
 
