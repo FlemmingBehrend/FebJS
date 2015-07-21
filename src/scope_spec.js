@@ -1,21 +1,16 @@
+/* global publishExternalAPI: false, createInjector: false */
+
 "use strict";
 
 describe("Scope", function () {
-
-    it("Should be possible to create and instance and use it as an object", function () {
-        var scope = new Scope();
-        scope.aProperty = 1;
-        expect(scope.aProperty).toBe(1);
-    });
-
-
 
     describe("digest", function () {
 
         var scope;
 
         beforeEach(function () {
-            scope = new Scope();
+            publishExternalAPI();
+            scope = createInjector(['ng']).get('$rootScope');
         });
 
         it ("Should call the listener function of a $watch on first $digest", function () {
@@ -791,29 +786,32 @@ describe("Scope", function () {
 
     describe("inheritance", function() {
 
+        var parent;
+
+        beforeEach(function () {
+            publishExternalAPI();
+            parent = createInjector(['ng']).get('$rootScope');
+        });
+
         it ("Should inherit the parents properties", function () {
-            var parent = new Scope();
             parent.aValue = [1,2,3];
             var child = parent.$new();
             expect(child.aValue).toEqual([1,2,3]);
         });
 
         it ("Should not cause a parent to inherit it's child's properties", function () {
-            var parent = new Scope();
             var child = parent.$new();
             child.aValue = [1, 2, 3];
             expect(parent.aValue).toBeUndefined();
         });
 
         it ("Should inherit the parent's properties even when defined after the link have been created", function () {
-            var parent = new Scope();
             var child = parent.$new();
             parent.aValue = [1, 2, 3];
             expect(child.aValue).toEqual([1, 2, 3]);
         });
 
         it ("Should be possible to manipulate the parent's scope properties from a child scope", function () {
-            var parent = new Scope();
             var child = parent.$new();
             parent.aValue = [1, 2, 3];
             child.aValue.push(4);
@@ -822,7 +820,6 @@ describe("Scope", function () {
         });
 
         it ("Should be possible to $watch a parent scope property from a child scope", function () {
-            var parent = new Scope();
             var child = parent.$new();
             parent.aValue = [1,2,3];
             child.counter = 0;
@@ -843,7 +840,7 @@ describe("Scope", function () {
         });
 
         it ("Should be possible to create nested scopes in any depth", function () {
-            var a = new Scope();
+            var a = parent;
             var aa = a.$new();
             var aaa = aa.$new();
             var aab = aa.$new();
@@ -862,7 +859,6 @@ describe("Scope", function () {
         });
 
         it ("Should be possible for a child scope to shadow properties from it's parent scope", function () {
-            var parent = new Scope();
             var child = parent.$new();
             parent.name = "Flemming";
             child.name = "Frederik";
@@ -871,7 +867,6 @@ describe("Scope", function () {
         });
 
         it ("Should not be possible for a child scope to shadow attributes from it's parent scope", function () {
-            var parent = new Scope();
             var child = parent.$new();
             parent.user = {name: "Flemming"};
             child.user.name = "Frederik";
@@ -880,7 +875,6 @@ describe("Scope", function () {
         });
 
         it ("Should not call $watch on parent scopes under $digest", function () {
-            var parent = new Scope();
             var child = parent.$new();
             parent.aValue = "abc";
             parent.$watch(
@@ -896,7 +890,6 @@ describe("Scope", function () {
         });
 
         it ("Should be possible for a scope to keep track of it's children scopes", function () {
-            var parent = new Scope();
             var child1 = parent.$new();
             var child2 = parent.$new();
             var child2_1 = child2.$new();
@@ -909,7 +902,6 @@ describe("Scope", function () {
         });
 
         it ("Should $digest it's own scope and it's children", function () {
-            var parent = new Scope();
             var child = parent.$new();
             parent.aValue = "abc";
             child.$watch(
@@ -925,7 +917,6 @@ describe("Scope", function () {
         });
 
         it ("Should $digest from the root on $apply", function () {
-            var parent = new Scope();
             var child = parent.$new();
             var child2 = child.$new();
             parent.aValue = "abc";
@@ -944,7 +935,6 @@ describe("Scope", function () {
         });
 
         it ("Should schedule a $digest from the root on $evalAsync", function (done) {
-            var parent = new Scope();
             var child = parent.$new();
             var child2 = child.$new();
             parent.aValue = "abc";
@@ -966,14 +956,12 @@ describe("Scope", function () {
         });
 
         it ("Should not be possible to get access to parent attributes when the child scope is isolated", function () {
-            var parent = new Scope();
             var child = parent.$new(true);
             parent.aValue = "abc";
             expect(child.aValue).toBeUndefined();
         });
 
         it ("Should not be possible to $watch parent attributes when the child scope is isolated", function () {
-            var parent = new Scope();
             var child = parent.$new(true);
             parent.aValue = "abc";
             child.$watch(
@@ -989,7 +977,6 @@ describe("Scope", function () {
         });
 
         it ("Should $digest children of an isolated scope", function() {
-            var parent = new Scope();
             var child = parent.$new(true);
             child.aValue = "abc";
             child.$watch(
@@ -1005,7 +992,6 @@ describe("Scope", function () {
         });
 
         it ("Should visit child scopes on $digest even when the child scope is isolated", function () {
-            var parent = new Scope();
             var child = parent.$new(true);
             var child2 = child.$new();
             parent.aValue = "abc";
@@ -1024,7 +1010,6 @@ describe("Scope", function () {
         });
 
         it ("Should schedule a $digest from the root when calling $evalAsync on an isolated scope", function (done) {
-            var parent = new Scope();
             var child = parent.$new(true);
             var child2 = child.$new();
             parent.aValue = "abc";
@@ -1046,7 +1031,6 @@ describe("Scope", function () {
         });
 
         it ("Should execute $evalAsync functions on isolated scopes", function (done) {
-            var parent = new Scope();
             var child = parent.$new(true);
             child.$evalAsync(function (scope) {
                 scope.didEvalAsync = true;
@@ -1058,7 +1042,6 @@ describe("Scope", function () {
         });
 
         it ("Should execute $$postDigest functions on isolated scopes", function () {
-            var parent = new Scope();
             var child = parent.$new(true);
             child.$$postDigest(function () {
                 child.didPostDigest = true;
@@ -1068,9 +1051,7 @@ describe("Scope", function () {
         });
 
         it ("Should possible to $destroy a child scope, so it is no longer in the $digest cycle", function () {
-            var parent = new Scope();
             var child = parent.$new();
-
             child.aValue = [1,2,3];
             child.counter = 0;
             child.$watch(
@@ -1100,7 +1081,8 @@ describe("Scope", function () {
         var scope;
 
         beforeEach(function () {
-            scope = new Scope();
+            publishExternalAPI();
+            scope = createInjector(['ng']).get('$rootScope');
         });
 
         it ("Should work like a normal $watch for non collections", function () {
@@ -1482,7 +1464,8 @@ describe("Scope", function () {
         var isolatedScope;
 
         beforeEach(function () {
-            parent = new Scope();
+            publishExternalAPI();
+            parent = createInjector(['ng']).get('$rootScope');
             scope = parent.$new();
             child = scope.$new();
             isolatedScope = scope.$new(true);
