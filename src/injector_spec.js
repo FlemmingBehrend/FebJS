@@ -756,4 +756,57 @@ describe('injector', function () {
         });
 
     });
+
+    describe('decorators', function () {
+
+        it('allows changing a instance using a decorator', function () {
+            var module = angular.module('myModule', []);
+            module.factory('aValue', function () {
+                return {aKey: 42};
+            });
+            module.config(function ($provide) {
+                $provide.decorator('aValue', function ($delegate) {
+                    $delegate.decoratedKey = 43;
+                });
+            });
+            var injector = createInjector(['myModule']);
+            expect(injector.get('aValue').aKey).toBe(42);
+            expect(injector.get('aValue').decoratedKey).toBe(43);
+        });
+
+        it('allows multiple decorators per service', function () {
+            var module = angular.module('myModule', []);
+            module.factory('service', function () {
+                return {};
+            });
+            module.config(function ($provide) {
+                $provide.decorator('service', function ($delegate) {
+                    $delegate.decoratedKey = 43;
+                });
+                $provide.decorator('service', function ($delegate) {
+                    $delegate.anotherDecoratedKey = 44;
+                });
+            });
+            var injector = createInjector(['myModule']);
+            expect(injector.get('service').decoratedKey).toBe(43);
+            expect(injector.get('service').anotherDecoratedKey).toBe(44);
+        });
+
+        it('uses dependency injection with decorators', function () {
+            var module = angular.module('myModule', []);
+            module.factory('service', function () {
+                return {};
+            });
+            module.constant('a', 42);
+            module.config(function ($provide) {
+                $provide.decorator('service', function (a, $delegate) {
+                    $delegate.decoratedKey = a;
+                });
+            });
+            var injector = createInjector(['myModule']);
+            expect(injector.get('service').decoratedKey).toBe(42);
+        });
+
+    });
+
 });
