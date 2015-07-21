@@ -464,7 +464,7 @@ describe('injector', function () {
 
     describe('$injector', function () {
 
-        it('allows injecting the instance injector to $get', function () {
+        it('allows injecting the $injector to $get', function () {
             var module = angular.module('myModule', []);
             module.constant('a', 42);
             module.provider('b', function BProvider() {
@@ -476,7 +476,7 @@ describe('injector', function () {
             expect(injector.get('b')).toBe(42);
         });
 
-        it('allows injecting the provider injector to providers', function () {
+        it('allows injecting the $injector to providers', function () {
             var module = angular.module('myModule', []);
             module.provider('a', function AProvider() {
                 this.value = 42;
@@ -692,6 +692,33 @@ describe('injector', function () {
                 injector.get('a');
             }).toThrow();
             expect(injector.get('b')).toBeNull();
+        });
+
+    });
+
+    describe('module.value', function () {
+
+        it('allows registering a value', function () {
+            var module = angular.module('myModule', []);
+            module.value('a', 42);
+            var injector = createInjector(['myModule']);
+            expect(injector.get('a')).toBe(42);
+        });
+
+        it('does not make values available to config blocks', function () {
+            var module = angular.module('myModule', []);
+            module.value('a', 42);
+            module.config(function (a) {});
+            expect(function () {
+                createInjector(['myModule']);
+            }).toThrow();
+        });
+
+        it('allows an undefined value', function () {
+            var module = angular.module('myModule', []);
+            module.value('a', undefined);
+            var injector = createInjector(['myModule']);
+            expect(injector.get('a')).toBeUndefined();
         });
 
     });
