@@ -9,24 +9,37 @@ function $QProvider() {
             this.$$state = {};
         }
 
-        Promise.prototype.then = function (onFulfilled) {
+        Promise.prototype.then = function (onFulfilled, onRejected) {
             this.$$state.pending = this.$$state.pending || [];
-            this.$$state.pending.push(onFulfilled);
+            this.$$state.pending.push([null, onFulfilled, onRejected]);
             if (this.$$state.status > 0) {
                 scheduleProcessQueue(this.$$state);
             }
         };
 
-        function Deffered() {
+        Promise.prototype.catch = function (onRejected) {
+            this.then(null, onRejected);
+        };
+
+        function Deferred() {
             this.promise = new Promise();
         }
 
-        Deffered.prototype.resolve = function (value) {
+        Deferred.prototype.resolve = function (value) {
             if (this.promise.$$state.status) {
                 return;
             }
             this.promise.$$state.value = value;
             this.promise.$$state.status = 1;
+            scheduleProcessQueue(this.promise.$$state);
+        };
+        
+        Deferred.prototype.reject = function (reason) {
+            if (this.promise.$$state.status) {
+                return;
+            }
+            this.promise.$$state.value = reason;
+            this.promise.$$state.status = 2;
             scheduleProcessQueue(this.promise.$$state);
         };
 
@@ -39,13 +52,16 @@ function $QProvider() {
         function processQueue(state) {
             var pending = state.pending;
             delete state.pending;
-            _.forEach(pending, function (onFulfilled) {
-                onFulfilled(state.value);
+            _.forEach(pending, function (handlers) {
+                var fn = handlers[state.status];
+                if (_.isFunction(fn)) {
+                    fn(state.value);
+                }
             });
         }
 
         function defer() {
-            return new Deffered();
+            return new Deferred();
         }
 
         return {
