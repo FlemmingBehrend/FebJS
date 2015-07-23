@@ -14,31 +14,24 @@
     <script src="./../loader.js"></script>
     <script src="./../parse.js"></script>
     <script src="./../scope.js"></script>
+    <script src="./../angular_public.js"></script>
+    <script src="./../apis.js"></script>
+    <script src="./../q.js"></script>
     <script type="text/javascript">
         $(document).ready(function () {
             console.log('Document ready');
             console.log(window ? window : 'Error creating window object');
-            setupModuleLoader(window);
-            var scope = new Scope();
-            console.log(scope ? scope : 'Error creating RootScope');
-            var module = angular.module('febjs.demo', []);
-            module.constant('c', 12);
-            module.provider('scope', function ScopeProvider() {
-                this.$get = function () {
-                    return new Scope();
-                };
+            publishExternalAPI();
+            var module = angular.module('febjs', ['ng']);
+            module.value('febvalue', 42);
+            module.factory('febfactory', function (febvalue, $parse) {
+                return $parse(function () {
+                    return '4.2;'
+                });
             });
-            module.provider('MyController', function MyControllerProvider() {
-                this.$get = function (scope, c) {
-                    console.log(scope);
-                    scope.value = c;
-                };
-            });
-            var injector = createInjector(['febjs.demo']);
-            console.log('Bootstrap finished!');
-            var myController = injector.get('MyController');
-            console.log(myController);
-
+            var injector = createInjector(['febjs']);
+            var febfactory = injector.get('febfactory');
+            console.log(febfactory);
         });
     </script>
 </body>

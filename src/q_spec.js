@@ -58,4 +58,28 @@ describe('$q', function () {
         $rootScope.$apply();
         expect(promiseSpy).toHaveBeenCalledWith(42);
     });
+
+    it('may only be resolved once', function () {
+        var deferred = $q.defer();
+        var promiseSpy = jasmine.createSpy('promiseSpy');
+        deferred.promise.then(promiseSpy);
+        deferred.resolve(42);
+        deferred.resolve(43);
+        $rootScope.$apply();
+        expect(promiseSpy.calls.count()).toBe(1);
+        expect(promiseSpy).toHaveBeenCalledWith(42);
+    });
+
+    it('may only be revolved once even if resolved in two different digests', function () {
+        var deferred = $q.defer();
+        var promiseSpy = jasmine.createSpy('promiseSpy');
+        deferred.promise.then(promiseSpy);
+        deferred.resolve(42);
+        $rootScope.$apply();
+        expect(promiseSpy).toHaveBeenCalledWith(42);
+        deferred.resolve(43);
+        $rootScope.$apply();
+        expect(promiseSpy.calls.count()).toBe(1);
+    });
+
 });
