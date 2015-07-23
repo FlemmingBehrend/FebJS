@@ -82,4 +82,14 @@ describe('$q', function () {
         expect(promiseSpy.calls.count()).toBe(1);
     });
 
+    it('resolves a promise added after the deferred have been resolved', function () {
+        var deferred = $q.defer();
+        deferred.resolve(42);
+        $rootScope.$apply();
+        var promiseSpy = jasmine.createSpy('promiseSpy');
+        deferred.promise.then(promiseSpy);
+        $rootScope.$apply();
+        expect(promiseSpy).toHaveBeenCalledWith(42);
+    });
+
 });
