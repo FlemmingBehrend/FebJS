@@ -50,6 +50,7 @@ function $CompileProvider($provide) {
                     addDirective(directives, directiveNormalize(match[1]), 'M');
                 }
             }
+            directives.sort(byPriority);
             return directives;
         }
 
@@ -67,7 +68,6 @@ function $CompileProvider($provide) {
 
     }];
 
-
     var hasDirectives = {};
 
     this.directive = function (name, directiveFactory) {
@@ -79,9 +79,12 @@ function $CompileProvider($provide) {
                 hasDirectives[name] = [];
                 $provide.factory(name + 'Directive', ['$injector', function ($injector) {
                     var factories = hasDirectives[name];
-                    var map = _.map(factories, function (factory) {
+                    var map = _.map(factories, function (factory, i) {
                         var directive = $injector.invoke(factory);
                         directive.restrict = directive.restrict || 'EA';
+                        directive.name = directive.name || name;
+                        directive.priority = directive.priority || 0;
+                        directive.index = i;
                         return directive;
                     });
                     return map;
@@ -105,6 +108,19 @@ var PREFIX_REGEXP = /(x[\:\-_]|data[\:\-_])/i;
 
 function directiveNormalize(name) {
     return _.camelCase(name.replace(PREFIX_REGEXP, ''));
+}
+
+function byPriority(a, b) {
+    var diff = b.priority - a.priority;
+    if (diff !== 0) {
+        return diff;
+    } else {
+        if (a.name !== b.name) {
+            return (a.name < b.name ? -1 : 1);
+        } else {
+            return a.index - b.index;
+        }
+    }
 }
 
 $CompileProvider.inject = ['$provide'];
