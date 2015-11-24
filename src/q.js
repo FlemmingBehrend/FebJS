@@ -10,11 +10,13 @@ function $QProvider() {
         }
 
         Promise.prototype.then = function (onFulfilled, onRejected) {
+            var result = new Deferred();
             this.$$state.pending = this.$$state.pending || [];
-            this.$$state.pending.push([null, onFulfilled, onRejected]);
+            this.$$state.pending.push([result, onFulfilled, onRejected]);
             if (this.$$state.status > 0) {
                 scheduleProcessQueue(this.$$state);
             }
+            return result.promise;
         };
 
         Promise.prototype.catch = function (onRejected) {
@@ -61,9 +63,14 @@ function $QProvider() {
             var pending = state.pending;
             delete state.pending;
             _.forEach(pending, function (handlers) {
+                var deferred = handlers[0];
                 var fn = handlers[state.status];
                 if (_.isFunction(fn)) {
-                    fn(state.value);
+                    deferred.resolve(fn(state.value));
+                } else if (state.status === 1) {
+                    deferred.resolve(state.value);
+                } else {
+                    deferred.reject(state.value);
                 }
             });
         }
@@ -75,7 +82,6 @@ function $QProvider() {
         return {
             defer: defer
         }
-
 
     }];
 

@@ -205,4 +205,52 @@ describe('$q', function () {
         expect(finallySpy).toHaveBeenCalledWith();
     });
 
+    it('allows chaining handlers', function () {
+        var deferred = $q.defer();
+        var fulfilledSpy = jasmine.createSpy('fulfilledSpy');
+        deferred.promise.then(function (result) {
+            return result + 1;
+        }).then(function (result) {
+            return result * 2;
+        }).then(fulfilledSpy);
+        deferred.resolve(20);
+        $rootScope.$apply();
+        expect(fulfilledSpy).toHaveBeenCalledWith(42);
+    });
+
+    it('does not modify original resolution in chains', function () {
+        var deferred = $q.defer();
+        var fulfilledSpy = jasmine.createSpy('fulfilledSpy');
+        deferred.promise.then(function (result) {
+            return result + 1;
+        }).then(function (result) {
+            return result * 2;
+        });
+        deferred.promise.then(fulfilledSpy);
+        deferred.resolve(20);
+        $rootScope.$apply();
+        expect(fulfilledSpy).toHaveBeenCalledWith(20);
+    });
+
+    it('catches rejection on chained handler', function () {
+        var deferred = $q.defer();
+        var rejectSpy = jasmine.createSpy('rejectSpy');
+        deferred.promise.then(_.noop).catch(rejectSpy);
+        deferred.reject('fail');
+        $rootScope.$apply();
+        expect(rejectSpy).toHaveBeenCalledWith('fail');
+    });
+
+    xit('fulfills on chained handler', function () {
+        var deferred = $q.defer();
+        var fulfilledSpy = jasmine.createSpy('fulfilledSpy');
+        var C = deferred.promise.catch(function () {
+            
+        });
+        C.then(fulfilledSpy);
+        deferred.resolve(42);
+        $rootScope.$apply();
+        expect(fulfilledSpy).toHaveBeenCalledWith(42);
+    });
+
 });

@@ -1,7 +1,7 @@
 module.exports = function(config) {
-    var path = require('path');
-    var darwinPath = path.join(__dirname, 'phantomjs/phantomjs');
-    console.log(darwinPath);
+    //var path = require('path');
+    //var darwinPath = path.join(__dirname, 'phantomjs/phantomjs');
+    //console.log(darwinPath);
 
     config.set({
         basePath: '',
