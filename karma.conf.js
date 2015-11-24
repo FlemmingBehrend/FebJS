@@ -7,7 +7,7 @@ module.exports = function(config) {
         basePath: '',
         frameworks: ['jasmine'],
         files: [
-            'node_modules/lodash/lodash.js',
+            'node_modules/lodash/index.js',
             'node_modules/jquery/dist/jquery.js',
             'src/*.js'
         ],
