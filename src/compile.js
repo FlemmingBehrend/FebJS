@@ -54,6 +54,15 @@ function $CompileProvider($provide) {
             var directives = [];
             var normalizedNodeName = directiveNormalize(nodeName(node).toLowerCase());
             addDirective(directives, normalizedNodeName);
+            _.forEach(node.attributes, function (attribute) {
+                var normalizedAttributeName = directiveNormalize(attribute.name.toLowerCase());
+                if (/^ngAttr[A-Z]/.test(normalizedAttributeName)) {
+                    normalizedAttributeName =
+                        normalizedAttributeName[6].toLowerCase() +
+                        normalizedAttributeName.substring(7);
+                }
+                addDirective(directives, normalizedAttributeName);
+            });
             return directives;
         }
 
