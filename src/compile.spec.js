@@ -77,6 +77,46 @@ describe('$compile', function() {
         });
     });
     
+    it('compiles element directives from child elements', function() {
+        var index = 1;
+        var injector = makeInjectorWithDirectives('myDirective', function () {
+            return {
+                compile: function (element) {
+                    element.data('hasCompiled', index++);
+                }
+            };
+        });
+        injector.invoke(function ($compile) {
+            var el = $('<div><my-directive></my-directive></div>');
+            $compile(el);
+            expect(el.data('hasCompiled')).toBeUndefined();
+            expect(el.find('> my-directive').data('hasCompiled')).toBe(1);
+        })
+    });
+    
+    it('compiles nested directives', function() {
+        var index = 1;
+        var injector = makeInjectorWithDirectives('myDirective', function () {
+            return {
+                compile: function (element) {
+                    element.data('hasCompiled', index++);
+                }
+            };
+        });
+        injector.invoke(function ($compile) {
+            var el = $('<my-directive>' +
+            '               <my-directive>' +
+            '                   <my-directive></my-directive>' +
+            '               </my-directive>' +
+            '           </my-directive>');
+            $compile(el);
+            expect(el.find('> my-directive').data('hasCompiled')).toBe(2);
+            expect(el.find('> my-directive > my-directive').data('hasCompiled')).toBe(3);
+        })
+    });
+
+
+    
     function makeInjectorWithDirectives() {
         var args = arguments;
         return createInjector(['ng', function ($compileProvider) {
